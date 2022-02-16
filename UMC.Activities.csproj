@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Description></Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Subject\**" />
+    <EmbeddedResource Remove="Subject\**" />
+    <None Remove="Subject\**" />
+    <Compile Remove="Activities\SettingsSelectUserActivity %28副本%29.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Activities\AccountAccessActivity.cs" />
+    <Compile Remove="Activities\AccountLinkActivity.cs" />
+    <Compile Remove="Activities\SettingsLinkActivity.cs" />
+    <Compile Remove="Activities\SystemLogActivity.cs" />
+    <Compile Remove="Activities\SystemSetupActivity.cs" />
+    <Compile Remove="Activities\WebResource.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Location.csv" />
+    <None Remove="Resources\UMC.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\UMC.js" />
+    <EmbeddedResource Include="Resources\Location.csv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UMC.Data\UMC.Data.csproj" />
+  </ItemGroup>
+</Project>
