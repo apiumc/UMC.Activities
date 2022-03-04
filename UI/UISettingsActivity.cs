@@ -13,7 +13,7 @@ namespace UMC.Activities
 
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity();
 
 
             var header = new UIHeader();

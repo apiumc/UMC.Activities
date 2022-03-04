@@ -13,11 +13,11 @@ namespace UMC.Activities
     {
         private bool _IsDesign;
 
-        public static bool IsDesign(WebRequest request)
+        public static bool IsDesign(WebContext context)
         {
-            if (request.IsCashier)
+            if (context.Request.IsCashier)
             {
-                return "true".Equals(UMC.Security.AccessToken.Get("UIDesign"));//, "true");
+                return "true".Equals(context.Token.Get("UIDesign"));//, "true");
 
             }
             return false;
@@ -26,7 +26,7 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
 
-            _IsDesign = IsDesign(request);
+            _IsDesign = IsDesign(this.Context);
 
             List<Guid> ids = new List<Guid>();
             List<String> strIds = new List<string>();

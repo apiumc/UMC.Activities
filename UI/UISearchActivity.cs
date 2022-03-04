@@ -12,7 +12,7 @@ namespace UMC.Activities
     {
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); //UMC.Security.Identity.Current;
             var form = request.SendValues ?? new UMC.Web.WebMeta();
 
             if (form.ContainsKey("limit"))

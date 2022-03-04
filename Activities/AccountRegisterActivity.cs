@@ -15,9 +15,8 @@ namespace UMC.Activities
         void SendMobileCode(string mobile)
         {
 
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
 
-            var req = this.Context.Request;
 
             var hask = new Hashtable();
 
@@ -43,7 +42,8 @@ namespace UMC.Activities
                     times = 0;
                 }
             }
-            session.Commit(hask, user);
+            var req = this.Context.Request;
+            session.Commit(hask, user, req.UserHostAddress);
 
 
             hask["DateTime"] = DateTime.Now;
@@ -55,7 +55,7 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
 
-            var user = Web.UIFormDialog.AsyncDialog("Register", d =>
+            var user = this.AsyncDialog("Register", d =>
             {
                 if (request.SendValues != null && request.SendValues.Count > 0)
                 {
@@ -172,7 +172,7 @@ namespace UMC.Activities
                 }
                 var iden = uM.Identity(username);
 
-                UMC.Security.AccessToken.Login(iden, UMC.Security.AccessToken.Token.Value, request.IsApp ? "App" : "Client", true);
+                this.Context.Token.Login(iden, request.IsApp ? "App" : "Client", true, request.UserHostAddress);
 
                 if (String.IsNullOrEmpty(passwork) == false)
                 {

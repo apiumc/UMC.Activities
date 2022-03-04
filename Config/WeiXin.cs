@@ -184,7 +184,7 @@ namespace UMC.Configuration
             var provdier = UMC.Data.Reflection.GetDataProvider("payment", "Wxpay");
             string appId = provdier["appid"];
             string appSecret = provdier["appSecret"];
-            var appKey = Data.Utility.Guid(UMC.Security.Principal.Current.AppKey ?? Guid.Empty);
+
 
             Hashtable hash = null;
             if (uri.Host.StartsWith(appId))

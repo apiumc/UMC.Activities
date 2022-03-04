@@ -67,7 +67,7 @@ namespace UMC.Activities
             var site = Utility.IntParse(this.AsyncDialog("Site", "0"), 0);
             var ids = new List<String>();
             var menus = new List<UMC.Data.Entities.Menu>();
-
+            var user = this.Context.Token.Identity();
             if (request.IsMaster)
             {
                 menus = UMC.Data.DataFactory.Instance().Menu(site).OrderBy(d => d.Seq ?? 0).ToList();
@@ -87,7 +87,7 @@ namespace UMC.Activities
                     menus.Add(dr);
                     return false;
                 });
-                var auths = Security.AuthManager.IsAuthorization(ids.ToArray());
+                var auths = Security.AuthManager.IsAuthorization(user,ids.ToArray());
                 menus.RemoveAll(p =>
                 {
                     switch (p.Type ?? 0)

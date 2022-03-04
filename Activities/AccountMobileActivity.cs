@@ -16,7 +16,7 @@ namespace UMC.Activities
         void SendMobileCode(string mobile)
         {
 
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); //UMC.Security.Identity.Current;
 
             var req = this.Context.Request;
 
@@ -44,7 +44,7 @@ namespace UMC.Activities
                     times = 0;
                 }
             }
-            session.Commit(hask, user);
+            session.Commit(hask, user, this.Context.Request.UserHostAddress);
 
 
             UMC.Data.Reflection.PropertyToDictionary(Data.DataFactory.Instance().User(user.Id.Value), hask);
@@ -60,11 +60,11 @@ namespace UMC.Activities
 
         void Remove()
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             var act = Account.Create(user.Id.Value);
 
             var a = act[Account.MOBILE_ACCOUNT_KEY];
-            var code = Web.UIDialog.AsyncDialog("Remove", d =>
+            var code = this.AsyncDialog("Remove", d =>
                  {
 
                      var fm = new Web.UIFormDialog() { Title = "解除验证" };
@@ -91,11 +91,11 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
 
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             var act = Account.Create(user.Id.Value);
 
 
-            var value = Web.UIDialog.AsyncDialog("Mobile", d =>
+            var value = this.AsyncDialog("Mobile", d =>
             {
                 var acc = act[UMC.Security.Account.MOBILE_ACCOUNT_KEY];
                 if (acc != null && (acc.Flags & UserFlags.UnVerification) != UserFlags.UnVerification)
@@ -131,17 +131,17 @@ namespace UMC.Activities
             }
 
 
-            var Code = UMC.Web.UIDialog.AsyncDialog("Code", g =>
-            {
-                var fm = new Web.UIFormDialog() { Title = "手机号码验证" };
-                fm.AddTextValue().Put("手机号码", value);
-                fm.AddVerify("验证码", "Code", "您收到的验证码")
-                .Command("Account", "Mobile", new UMC.Web.WebMeta().Put("Mobile", value).Put("Code", "Send"))
-                    .Put("Start", "YES");
+            var Code = UMC.Web.UIDialog.AsyncDialog(this.Context, "Code", g =>
+             {
+                 var fm = new Web.UIFormDialog() { Title = "手机号码验证" };
+                 fm.AddTextValue().Put("手机号码", value);
+                 fm.AddVerify("验证码", "Code", "您收到的验证码")
+                 .Command("Account", "Mobile", new UMC.Web.WebMeta().Put("Mobile", value).Put("Code", "Send"))
+                     .Put("Start", "YES");
 
-                fm.Submit("确认验证码", request, "Mobile");
-                return fm;
-            });
+                 fm.Submit("确认验证码", request, "Mobile");
+                 return fm;
+             });
             if (Code == "Send")
             {
                 this.SendMobileCode(value);

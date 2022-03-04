@@ -13,10 +13,10 @@ namespace UMC.Activities
     {
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var sId = Web.UIDialog.AsyncDialog("Id", dkey =>
+            var sId = this.AsyncDialog("Id", dkey =>
             {
-                var ParentId = UMC.Data.Utility.Guid(Web.UIDialog.AsyncDialog("ParentId", d => this.DialogValue(Guid.Empty.ToString()))).Value;
-                var Type = Web.UIDialog.AsyncDialog("Type", k => this.DialogValue("Organize"));
+                var ParentId = UMC.Data.Utility.Guid(this.AsyncDialog("ParentId", d => this.DialogValue(Guid.Empty.ToString()))).Value;
+                var Type = this.AsyncDialog("Type", k => this.DialogValue("Organize"));
                 switch (Type)
                 {
                     case "User":

@@ -68,15 +68,15 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
 
-            var username = Web.UIDialog.AsyncDialog("Username", d =>
-            {
-                var fd = new UMC.Web.UIFormDialog();
-                fd.Title = "找回密码";
-                fd.AddText("", "Username").Put("placeholder", "手机号码或邮箱");
+            var username = Web.UIDialog.AsyncDialog(this.Context, "Username", d =>
+             {
+                 var fd = new UMC.Web.UIFormDialog();
+                 fd.Title = "找回密码";
+                 fd.AddText("", "Username").Put("placeholder", "手机号码或邮箱");
 
-                fd.Submit("下一步", request, "Forget");
-                return fd;
-            });
+                 fd.Submit("下一步", request, "Forget");
+                 return fd;
+             });
             //var entity = Data.Database.Instance().ObjectEntity<UMC.Data.Entities.Account>();
             //UMC.Data.Entities.Account ac = new UMC.Data.Entities.Account { Name = username };
             var type = 0;
@@ -113,20 +113,20 @@ namespace UMC.Activities
                 this.Prompt("只支持手机号和邮箱找回密码");
 
             }
-            var Code = UMC.Web.UIDialog.AsyncDialog("Code", g =>
-            {
-                var ts = type == UMC.Security.Account.EMAIL_ACCOUNT_KEY ? "邮箱" : "手机";
-                var fd = new UMC.Web.UIFormDialog();
-                fd.AddTextValue().Put(ts, username);
+            var Code = UMC.Web.UIDialog.AsyncDialog(this.Context, "Code", g =>
+             {
+                 var ts = type == UMC.Security.Account.EMAIL_ACCOUNT_KEY ? "邮箱" : "手机";
+                 var fd = new UMC.Web.UIFormDialog();
+                 fd.AddTextValue().Put(ts, username);
 
-                fd.AddVerify("验证码", "Code", String.Format("{0}收到的验证码", ts))
-                 .Command(request.Model, request.Command, new UMC.Web.WebMeta().Put("Username", username).Put("Code", "Reset"));
-                fd.Title = "验证" + ts;
-                fd.Submit("验证", request, "Password");
-                this.Context.Send(new UMC.Web.WebMeta().Put("type", "Forget"), false);
+                 fd.AddVerify("验证码", "Code", String.Format("{0}收到的验证码", ts))
+                  .Command(request.Model, request.Command, new UMC.Web.WebMeta().Put("Username", username).Put("Code", "Reset"));
+                 fd.Title = "验证" + ts;
+                 fd.Submit("验证", request, "Password");
+                 this.Context.Send(new UMC.Web.WebMeta().Put("type", "Forget"), false);
 
-                return fd;
-            });
+                 return fd;
+             });
             if (String.Equals(Code, "Reset"))
             {
                 ;

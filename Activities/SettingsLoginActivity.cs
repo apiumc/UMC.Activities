@@ -54,7 +54,7 @@ namespace UMC.Activities
                     {
                         this.Prompt("您不是门店内部人员，不能从此登录。");
                     }
-                    AccessToken.Login(iden, AccessToken.Token.Value, request.IsApp ? 0 : 3600, request.IsApp ? "App" : "Desktop", true);
+                    this.Context.Token.Login(iden,  request.IsApp ? 0 : 3600, request.IsApp ? "App" : "Desktop", true,request.UserHostAddress);
                     this.Context.OnReset();
 
                     this.Prompt("登录成功", false);

@@ -10,7 +10,7 @@ namespace UMC.Activities
 
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             var groupId = UMC.Data.Utility.Guid(this.AsyncDialog("id", d =>
             {
                 this.Prompt("请传入参数");
@@ -29,7 +29,7 @@ namespace UMC.Activities
                 }
             });
             WebResource oosr = WebResource.Instance();//as OssResource;
-            var media_id = UMC.Web.UIDialog.AsyncDialog("media_id", g =>
+            var media_id = this.AsyncDialog("media_id", g =>
             {
                 if (request.IsApp)
                 {

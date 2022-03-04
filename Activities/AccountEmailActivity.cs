@@ -15,7 +15,7 @@ namespace UMC.Activities
 
         void SendEmail(string email)
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
 
             var uiattr = UMC.Data.Reflection.GetDataProvider("account", "Email");
 
@@ -35,7 +35,7 @@ namespace UMC.Activities
             }
             else
             {
-                session.Commit(hask, user);
+                session.Commit(hask, user, this.Context.Request.UserHostAddress);
             }
 
             UMC.Data.Reflection.PropertyToDictionary(Data.DataFactory.Instance().User(user.Id.Value), hask);
@@ -52,11 +52,11 @@ namespace UMC.Activities
 
         void Remove()
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             var act = Account.Create(user.Id.Value);
 
             var a = act[Account.EMAIL_ACCOUNT_KEY];
-            var code = Web.UIDialog.AsyncDialog("Remove", d =>
+            var code = this.AsyncDialog("Remove", d =>
                  {
 
                      var fm = new Web.UIFormDialog() { Title = "解除验证" };
@@ -83,11 +83,11 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
 
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             var act = Account.Create(user.Id.Value);
 
 
-            var value = Web.UIDialog.AsyncDialog("Email", d =>
+            var value = this.AsyncDialog("Email", d =>
             {
                 var acc = act[UMC.Security.Account.EMAIL_ACCOUNT_KEY];
                 if (acc != null && (acc.Flags & UserFlags.UnVerification) != UserFlags.UnVerification)
@@ -124,16 +124,16 @@ namespace UMC.Activities
             }
 
 
-            var Code = UMC.Web.UIDialog.AsyncDialog("Code", g =>
-            {
-                var fm = new Web.UIFormDialog() { Title = "验证码" };
-                fm.AddTextValue().Put("邮箱", value);
-                fm.AddVerify("验证码", "Code", "您邮箱收到的验证码")
-                    .Put("Command", "Email").Put("Model", "Account").Put("SendValue", new UMC.Web.WebMeta().Put("Email", value).Put("Code", "Send")).Put("Start", "YES");
+            var Code = UMC.Web.UIDialog.AsyncDialog(this.Context, "Code", g =>
+           {
+               var fm = new Web.UIFormDialog() { Title = "验证码" };
+               fm.AddTextValue().Put("邮箱", value);
+               fm.AddVerify("验证码", "Code", "您邮箱收到的验证码")
+                   .Put("Command", "Email").Put("Model", "Account").Put("SendValue", new UMC.Web.WebMeta().Put("Email", value).Put("Code", "Send")).Put("Start", "YES");
 
-                fm.Submit("确认验证码", request, "Email");
-                return fm;
-            });
+               fm.Submit("确认验证码", request, "Email");
+               return fm;
+           });
             if (Code == "Send")
             {
                 this.SendEmail(value);

@@ -508,7 +508,7 @@ namespace UMC.Activities
 
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             String ssid = this.AsyncDialog("Id", d => this.DialogValue(user.Id.ToString()));
             Guid? sId = UMC.Data.Utility.Guid(ssid);
             String size = this.AsyncDialog("Size", g => this.DialogValue("none"));

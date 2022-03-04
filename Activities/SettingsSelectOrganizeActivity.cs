@@ -22,7 +22,7 @@ namespace UMC.Activities
             var key = this.AsyncDialog("Key", g => this.DialogValue("Organize"));
             var DepId = Utility.Guid(this.AsyncDialog("Dep", g =>
             {
-                var organizes = UMC.Data.DataFactory.Instance().Organizes(new User { Id = UMC.Security.Identity.Current.Id.Value });
+                var organizes = UMC.Data.DataFactory.Instance().Organizes(new User { Id = this.Context.Token.Id.Value });
 
 
                 if (organizes.Length > 0)

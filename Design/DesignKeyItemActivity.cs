@@ -11,7 +11,7 @@ namespace UMC.Activities
     {
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = UMC.Security.Identity.Current; 
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current; 
 
             var strId = this.AsyncDialog("Id", g => this.DialogValue(Guid.NewGuid().ToString()));
             var itemId = Data.Utility.Guid(strId, true);//, true).Value;
@@ -22,14 +22,14 @@ namespace UMC.Activities
             //.Where.And().Equal(new Design_Item { Id = itemId });
 
             var item = DataFactory.Instance().DesignItem(itemId.Value);
-            var name = Web.UITextDialog.AsyncDialog("Name", g =>
+            var name = this.AsyncDialog("Name", g =>
             {
                 return this.DialogValue("Src");
             });
 
 
             var webr = UMC.Data.WebResource.Instance();
-            var desc = Web.UITextDialog.AsyncDialog("Desc", g =>
+            var desc = this.AsyncDialog("Desc", g =>
             {
                 var size = this.AsyncDialog("Size", sg =>
                 {

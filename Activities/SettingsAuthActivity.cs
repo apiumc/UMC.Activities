@@ -15,7 +15,7 @@ namespace UMC.Activities
         {
 
             var roles = UMC.Data.DataFactory.Instance().Roles();
-            var RoleType = UMC.Web.UIDialog.AsyncDialog("Type", d =>
+            var RoleType = this.AsyncDialog("Type", d =>
             {
                 if (roles.Length < 4)
                 {
@@ -28,7 +28,7 @@ namespace UMC.Activities
                 return rd;
             }); 
 
-            var setValue = UMC.Web.UIDialog.AsyncDialog("Value", d =>
+            var setValue = this.AsyncDialog("Value", d =>
             {
                 if (RoleType == "Role")
                 {
@@ -74,7 +74,7 @@ namespace UMC.Activities
             });
 
 
-            var Wildcard = Web.UIDialog.AsyncDialog("Wildcards", d =>
+            var Wildcard = this.AsyncDialog("Wildcards", d =>
             {
                 var fmdg = new Web.UICheckboxDialog();
                 fmdg.Title = "权限设置";

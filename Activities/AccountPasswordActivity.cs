@@ -21,7 +21,7 @@ namespace UMC.Activities
             {
                 return Web.UIDialog.ReturnValue("-1");
             }), 0);
-            var cUser = UMC.Security.Identity.Current;
+            var cUser = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             Guid user_id = UMC.Data.Utility.Guid(this.AsyncDialog("user_id", g =>
             {
                 return Web.UIDialog.ReturnValue(cUser.Id.Value.ToString());
@@ -43,7 +43,7 @@ namespace UMC.Activities
                 return Web.UIDialog.ReturnValue("0");
             });
 
-            var Password = Web.UIFormDialog.AsyncDialog("Password", d =>
+            var Password = this.AsyncDialog("Password", d =>
             {
                 if (request.SendValues != null)
                 {

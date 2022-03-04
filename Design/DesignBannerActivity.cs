@@ -13,7 +13,7 @@ namespace UMC.Activities
         bool _editer;
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             this._editer = request.IsCashier;
 
             var designId = UMC.Data.Utility.Guid(this.AsyncDialog("Id", g => new Web.UITextDialog()), true).Value;

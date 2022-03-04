@@ -10,7 +10,7 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
             this.AsyncDialog("Confirm", g => new UIConfirmDialog("确认退出吗"));
-            UMC.Security.AccessToken.SignOut();
+            this.Context.Token.SignOut(request.UserHostAddress);
 
 
             this.Prompt("退出成功", false);

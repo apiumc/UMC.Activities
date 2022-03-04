@@ -13,14 +13,14 @@ namespace UMC.Activities
 
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); //UMC.Security.Identity.Current;
             switch (request.SendValue)
             {
                 case "Mqtt":
-                    response.Redirect(UMC.Data.WebResource.Instance().Push(UMC.Security.AccessToken.Token.Value));
+                    response.Redirect(UMC.Data.WebResource.Instance().Push(this.Context.Token.Id.Value));
                     break;
                 case "Session":
-                    var seesionKey = UMC.Data.Utility.Guid(UMC.Security.AccessToken.Token.Value);
+                    var seesionKey = UMC.Data.Utility.Guid(this.Context.Token.Id.Value);
                     UMC.Data.HotCache.Remove(new UMC.Data.Entities.Session { SessionKey = seesionKey });
 
                     var seesion = UMC.Data.DataFactory.Instance().Session(seesionKey);
@@ -34,7 +34,7 @@ namespace UMC.Activities
                         var Value = UMC.Data.JSON.Deserialize<UMC.Security.AccessToken>(seesion.Content);
                         user = Value.Identity();
                         UMC.Data.DataFactory.Instance().Delete(seesion);
-                        UMC.Security.AccessToken.Login(user, UMC.Security.AccessToken.Token.Value, timeout, "Desktop", true);
+                        this.Context.Token.Login(user, timeout, request.IsApp ? "App" : "Desktop",true, request.UserHostAddress);
                         this.Context.Send("User", true);
                     }
                     else
@@ -47,7 +47,7 @@ namespace UMC.Activities
                         }
                         else
                         {
-                            response.Redirect(new WebMeta().Put("Device", UMC.Data.Utility.Guid(UMC.Security.AccessToken.Token.Value)));
+                            response.Redirect(new WebMeta().Put("Device", UMC.Data.Utility.Guid(this.Context.Token.Id.Value)));
                         }
                     }
                     return;
@@ -62,7 +62,7 @@ namespace UMC.Activities
                     info["IsCashier"] = request.IsCashier;
                     info["IsMaster"] = request.IsMaster;
                     info["TimeSpan"] = UMC.Data.Utility.TimeSpan();
-                    info["Device"] = UMC.Data.Utility.Guid(UMC.Security.AccessToken.Token.Value);// UMC.Data.Utility.Guid(UMC.Security.AccessToken.Token.Value);
+                    info["Device"] = UMC.Data.Utility.Guid(this.Context.Token.Id.Value);// UMC.Data.Utility.Guid(UMC.Security.AccessToken.Token.Value);
                     if (String.IsNullOrEmpty(request.UserAgent) == false)
                     {
                         var ua = request.UserAgent.ToUpper();

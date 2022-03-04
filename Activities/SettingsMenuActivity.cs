@@ -14,7 +14,7 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
 
-            var TypeId = UMC.Data.Utility.Guid(Web.UIDialog.AsyncDialog("Id", dkey =>
+            var TypeId = UMC.Data.Utility.Guid(this.AsyncDialog("Id", dkey =>
             {
                 var menus = Data.DataFactory.Instance().Menu(0).OrderBy(d => d.Seq ?? 0).ToList();
 

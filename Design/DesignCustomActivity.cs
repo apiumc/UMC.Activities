@@ -12,7 +12,7 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
 
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             var ids = new List<Guid>();
             var itemId = Utility.Guid(this.AsyncDialog("Id", g => this.DialogValue(Guid.NewGuid().ToString())), true);//, true).Value;
 

@@ -104,20 +104,20 @@ namespace UMC.Activities
 
 
             }
-            var callback = UMC.Security.AccessToken.Current.Data[("oauth_callback")] as string;
+            var callback = this.Context.Token.Data[("oauth_callback")] as string;
             var request = this.Context.Request;
             if (timeout > 0)
             {
-                UMC.Security.AccessToken.Login(iden, UMC.Security.AccessToken.Token.Value
-                    , timeout, request.IsApp ? "App" : "Desktop", true);
+                this.Context.Token.Login(iden
+                    , timeout, request.IsApp ? "App" : "Desktop", true, request.UserHostAddress);
             }
             else
             {
-                UMC.Security.AccessToken.Login(iden, UMC.Security.AccessToken.Token.Value, request.IsApp ? "App" : "Desktop", true);
+                this.Context.Token.Login(iden,  request.IsApp ? "App" : "Desktop", true, request.UserHostAddress);
             }
             if (String.IsNullOrEmpty(this.transfer) == false)
             {
-                var sesion = UMC.Data.DataFactory.Instance().Session(UMC.Security.AccessToken.Token.ToString());
+                var sesion = UMC.Data.DataFactory.Instance().Session(this.Context.Token.Id.ToString());
 
                 if (sesion != null)
                 {
@@ -238,7 +238,7 @@ namespace UMC.Activities
         void SendMobileCode(string mobile)
         {
 
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); //UMC.Security.Identity.Current;
 
 
 
@@ -263,7 +263,7 @@ namespace UMC.Activities
 
                 }
             }
-            session.Commit(hask, user);
+            session.Commit(hask, user, this.Context.Request.UserHostAddress);
 
 
             hask["DateTime"] = DateTime.Now;
@@ -279,110 +279,110 @@ namespace UMC.Activities
 
             var login = (UMC.Data.DataFactory.Instance().Configuration("account") ?? new ProviderConfiguration())["login"] ?? Provider.Create("name", "name");
             var timeout = UMC.Data.Utility.IntParse(login.Attributes["timeout"], 3600);
-            var user = Web.UIFormDialog.AsyncDialog("Login", d =>
-            {
-                if (request.SendValues != null && request.SendValues.Count > 0)
-                {
-                    return this.DialogValue(request.SendValues);
-                }
-                if (request.Url.Query.Contains("_v=Sub"))
-                {
-                    this.Context.Send("Login", true);
-                }
-                switch (type)
-                {
-                    case "wx":
-                        this.Context.Send(new UMC.Web.WebMeta().Put("type", "login.weixin"), true);
-                        break;
-                    case "qq":
-                        this.Context.Send(new UMC.Web.WebMeta().Put("type", "login.qq"), true);
-                        break;
-                }
-                if (request.IsApp)
-                {
-                    var loginData = new WebMeta();
-                    var appid = login.Attributes[type];
-                    if (String.IsNullOrEmpty(appid) == false)
-                    {
-                        loginData.Put("appid", appid);
-                    }
-                    switch (type)
-                    {
-                        case "weixin":
-                        case "qq":
-                        case "dingtalk":
-                            this.Context.Send("login." + type, loginData, true);
-                            break;
-                        default:
-                            var appLogin = login["default"];
-                            if (String.IsNullOrEmpty(appLogin) == false)
-                            {
-                                appid = login.Attributes[appLogin];
-                                if (String.IsNullOrEmpty(appid) == false)
-                                {
-                                    loginData.Put("appid", appid);
-                                }
-                                this.Context.Send("login." + appLogin, loginData, true);
-                            }
-                            break;
-                    }
+            var user = Web.UIFormDialog.AsyncDialog(this.Context, "Login", d =>
+           {
+               if (request.SendValues != null && request.SendValues.Count > 0)
+               {
+                   return this.DialogValue(request.SendValues);
+               }
+               if (request.Url.Query.Contains("_v=Sub"))
+               {
+                   this.Context.Send("Login", true);
+               }
+               switch (type)
+               {
+                   case "wx":
+                       this.Context.Send(new UMC.Web.WebMeta().Put("type", "login.weixin"), true);
+                       break;
+                   case "qq":
+                       this.Context.Send(new UMC.Web.WebMeta().Put("type", "login.qq"), true);
+                       break;
+               }
+               if (request.IsApp)
+               {
+                   var loginData = new WebMeta();
+                   var appid = login.Attributes[type];
+                   if (String.IsNullOrEmpty(appid) == false)
+                   {
+                       loginData.Put("appid", appid);
+                   }
+                   switch (type)
+                   {
+                       case "weixin":
+                       case "qq":
+                       case "dingtalk":
+                           this.Context.Send("login." + type, loginData, true);
+                           break;
+                       default:
+                           var appLogin = login["default"];
+                           if (String.IsNullOrEmpty(appLogin) == false)
+                           {
+                               appid = login.Attributes[appLogin];
+                               if (String.IsNullOrEmpty(appid) == false)
+                               {
+                                   loginData.Put("appid", appid);
+                               }
+                               this.Context.Send("login." + appLogin, loginData, true);
+                           }
+                           break;
+                   }
 
 
-                }
+               }
 
-                var dialog = new Web.UIFormDialog();
-                dialog.Title = "登录";
-                switch (type)
-                {
-                    default:
-                    case "User":
-                        this.Context.Send("LoginChange", false);
-                        {
-                            dialog.AddText("用户名", "Username", String.Empty).Put("placeholder", "用户名/手机/邮箱");
+               var dialog = new Web.UIFormDialog();
+               dialog.Title = "登录";
+               switch (type)
+               {
+                   default:
+                   case "User":
+                       this.Context.Send("LoginChange", false);
+                       {
+                           dialog.AddText("用户名", "Username", String.Empty).Put("placeholder", "用户名/手机/邮箱");
 
-                            dialog.AddPassword("用户密码", "Password", String.Empty);
+                           dialog.AddPassword("用户密码", "Password", String.Empty);
 
-                            dialog.Submit("登录", request, "User", "LoginChange");
-                            var uidesc = new UMC.Web.UI.UIDesc(new WebMeta().Put("eula", "用户协议").Put("private", "隐私政策"));
-                            uidesc.Desc("登录即同意“{eula}”和“{private}”");
-                            uidesc.Style.AlignCenter();
-                            uidesc.Style.Color(0x888).Size(14).Height(34);
-                            uidesc.Style.Name("eula").Color(0x3194d0).Click(new UIClick("365lu/provision/eula").Send("Subject", "UIData"));
-                            uidesc.Style.Name("private").Color(0x3194d0).Click(new UIClick("365lu/provision/private").Send("Subject", "UIData"));
-                            dialog.Add(uidesc);
-                            dialog.AddUIIcon("\uf2c1", "免密登录").Command(request.Model, request.Command, "Mobile");
-                            dialog.AddUIIcon("\uf1c6", "忘记密码").Put("Model", request.Model).Put("Command", "Forget");
-                            dialog.AddUIIcon("\uf234", "注册新用户").Put("Model", request.Model).Put("Command", "Register");
+                           dialog.Submit("登录", request, "User", "LoginChange");
+                           var uidesc = new UMC.Web.UI.UIDesc(new WebMeta().Put("eula", "用户协议").Put("private", "隐私政策"));
+                           uidesc.Desc("登录即同意“{eula}”和“{private}”");
+                           uidesc.Style.AlignCenter();
+                           uidesc.Style.Color(0x888).Size(14).Height(34);
+                           uidesc.Style.Name("eula").Color(0x3194d0).Click(new UIClick("365lu/provision/eula").Send("Subject", "UIData"));
+                           uidesc.Style.Name("private").Color(0x3194d0).Click(new UIClick("365lu/provision/private").Send("Subject", "UIData"));
+                           dialog.Add(uidesc);
+                           dialog.AddUIIcon("\uf2c1", "免密登录").Command(request.Model, request.Command, "Mobile");
+                           dialog.AddUIIcon("\uf1c6", "忘记密码").Put("Model", request.Model).Put("Command", "Forget");
+                           dialog.AddUIIcon("\uf234", "注册新用户").Put("Model", request.Model).Put("Command", "Register");
 
-                        }
-                        break;
-                    case "Mobile":
-                        this.Context.Send("LoginChange", false);
-                        {
-                            dialog.AddText("手机号码", "Username", String.Empty).Put("placeholder", "注册的手机号码");
+                       }
+                       break;
+                   case "Mobile":
+                       this.Context.Send("LoginChange", false);
+                       {
+                           dialog.AddText("手机号码", "Username", String.Empty).Put("placeholder", "注册的手机号码");
 
-                            dialog.AddVerify("验证码", "VerifyCode", "您收到的验证码").Put("For", "Username").Put("To", "Mobile")
-                            .Put("Command", request.Command).Put("Model", request.Model);
-                            dialog.Submit("登录", request, "User", "LoginChange");
+                           dialog.AddVerify("验证码", "VerifyCode", "您收到的验证码").Put("For", "Username").Put("To", "Mobile")
+                           .Put("Command", request.Command).Put("Model", request.Model);
+                           dialog.Submit("登录", request, "User", "LoginChange");
 
-                            var uidesc = new UMC.Web.UI.UIDesc(new WebMeta().Put("eula", "用户协议").Put("private", "隐私政策"));
-                            uidesc.Desc("登录即同意“{eula}”和“{private}”");
-                            uidesc.Style.AlignCenter();
-                            uidesc.Style.Color(0x888).Size(14).Height(34);
-                            uidesc.Style.Name("eula").Color(0x3194d0).Click(new UIClick("365lu/provision/eula").Send("Subject", "UIData"));
-                            uidesc.Style.Name("private").Color(0x3194d0).Click(new UIClick("365lu/provision/private").Send("Subject", "UIData"));
-                            dialog.Add(uidesc);
-                            dialog.AddUIIcon("\uf13e", "密码登录").Command(request.Model, request.Command, "User");
-                            dialog.AddUIIcon("\uf234", "注册新用户").Command(request.Model, "Register");
+                           var uidesc = new UMC.Web.UI.UIDesc(new WebMeta().Put("eula", "用户协议").Put("private", "隐私政策"));
+                           uidesc.Desc("登录即同意“{eula}”和“{private}”");
+                           uidesc.Style.AlignCenter();
+                           uidesc.Style.Color(0x888).Size(14).Height(34);
+                           uidesc.Style.Name("eula").Color(0x3194d0).Click(new UIClick("365lu/provision/eula").Send("Subject", "UIData"));
+                           uidesc.Style.Name("private").Color(0x3194d0).Click(new UIClick("365lu/provision/private").Send("Subject", "UIData"));
+                           dialog.Add(uidesc);
+                           dialog.AddUIIcon("\uf13e", "密码登录").Command(request.Model, request.Command, "User");
+                           dialog.AddUIIcon("\uf234", "注册新用户").Command(request.Model, "Register");
 
-                        }
-                        break;
-                }
+                       }
+                       break;
+               }
 
-                return dialog;
+               return dialog;
 
 
-            });
+           });
 
             if (user.ContainsKey("Mobile"))
             {
@@ -431,7 +431,7 @@ namespace UMC.Activities
                 {
                     var iden = userManager.Identity(eData.user_id.Value);
 
-                    UMC.Security.AccessToken.Login(iden, UMC.Security.AccessToken.Token.Value, request.IsApp ? 0 : timeout, request.IsApp ? "App" : "Client", true);
+                    this.Context.Token.Login(iden,   request.IsApp ? 0 : timeout, request.IsApp ? "App" : "Desktop", true, request.UserHostAddress);
                     this.Context.Send("User", true);
                 }
             }
@@ -536,7 +536,7 @@ namespace UMC.Activities
                 {
                     case 0:
                         var iden = userManager.Identity(username);
-                        UMC.Security.AccessToken.Login(iden, UMC.Security.AccessToken.Token.Value, request.IsApp ? 0 : timeout, request.IsApp ? "App" : "Desktop", true);
+                        this.Context.Token.Login(iden,   request.IsApp ? 0 : timeout, request.IsApp ? "App" : "Desktop", true, request.UserHostAddress);
                         this.Context.Send("User", true);
                         break;
                     case -2:

@@ -21,7 +21,7 @@ namespace UMC.Activities
 
             var Parent = Utility.IntParse(this.AsyncDialog("Parent", g => this.DialogValue("0")), 0);
 
-            var ValueId = Utility.IntParse(Web.UIDialog.AsyncDialog("Value", d =>
+            var ValueId = Utility.IntParse(this.AsyncDialog("Value", d =>
             {
                 if (request.SendValues == null || request.SendValues.ContainsKey("start") == false)
                 {

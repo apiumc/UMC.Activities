@@ -23,7 +23,7 @@ namespace UMC.Activities
                 });
                 return f;
             });
-            var user = Security.Identity.Current;
+            var user = this.Context.Token.Identity(); //Security.Identity.Current;
             var media_id = this.AsyncDialog("media_id", "none");
             if (String.Equals(media_id, "none") == false)
             {
@@ -42,7 +42,7 @@ namespace UMC.Activities
             }
             else
             {
-                var UseKey = UMC.Data.Utility.Parse36Encode(UMC.Security.Identity.Current.Id.Value);
+                var UseKey = UMC.Data.Utility.Parse36Encode(this.Context.Token.UId.Value);
                 var sourceKey = new Uri(String.Format("{2}TEMP/{0}/{1}", UMC.Data.Utility.GetRoot(request.Url), Key, oosr.TempDomain()));
 
                 Key = String.Format("UserResources/{0}/{1}", UseKey, Key);

@@ -15,7 +15,7 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
             var Type = this.AsyncDialog("Type", "Client");
-            var user = UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
             switch (Type)
             {
                 case "Client":
@@ -185,7 +185,7 @@ namespace UMC.Activities
                     break;
                 case "Signature":
 
-                    var reset = Web.UIFormDialog.AsyncDialog("value", g =>
+                    var reset = Web.UIFormDialog.AsyncDialog(this.Context, "value", g =>
                     {
 
 
