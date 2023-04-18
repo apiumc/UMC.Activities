@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -12,14 +12,13 @@ namespace UMC.Activities
     class SettingsUserActivity : WebActivity
     {
 
-        void Setting(String username, bool IsRole)
+        void Setting(User user)
         {
-            var user = Data.DataFactory.Instance().User(username);
             var userValue = Web.UIFormDialog.AsyncDialog(this.Context, "User", d =>
             {
                 var fdlg = new Web.UIFormDialog();
 
-                fdlg.Title = IsRole ? "角色设置" : "状态设置";
+                fdlg.Title = "状态设置";
 
                 var opts2 = new Web.ListItemCollection();
 
@@ -33,101 +32,53 @@ namespace UMC.Activities
                 fdlg.AddTextValue(opts2);
 
 
-                if (IsRole)
-                {
-                    var opts = new Web.ListItemCollection();
+                var flag = user.Flags ?? UMC.Security.UserFlags.Normal;
+                var opts = new Web.ListItemCollection();
+                var selected = ((flag & UMC.Security.UserFlags.Lock)) > 0;
+                opts.Add("锁定", "Lock", selected);
+                opts.Add("禁用", "Disabled", user.IsDisabled ?? false);
+                fdlg.AddCheckBox("状态", "Flags", opts, "0");
 
-                    var mRoles = new List<Role>();
-                    mRoles.AddRange(Data.DataFactory.Instance().Roles(user.Id.Value));
-
-
-                    UMC.Data.Utility.Each(Data.DataFactory.Instance().Roles(), dr =>
-                     {
-                         switch (dr.Rolename)
-                         {
-                             case UMC.Security.Membership.GuestRole:
-                                 break;
-                             case UMC.Security.Membership.AdminRole:
-                                 opts.Add("超级管理员", dr.Rolename, mRoles.Exists(ur => ur.Rolename == dr.Rolename));
-                                 break;
-                             case UMC.Security.Membership.UserRole:
-                                 opts.Add("内部员工", dr.Rolename, mRoles.Exists(ur => ur.Rolename == dr.Rolename));
-                                 break;
-                             case "Finance":
-                                 opts.Add("财务", dr.Rolename, mRoles.Exists(ur => ur.Rolename == dr.Rolename));
-                                 break;
-                             default:
-                                 opts.Add(dr.Rolename, dr.Rolename, mRoles.Exists(ur => ur.Rolename == dr.Rolename));
-                                 break;
-                         }
-                     });
-
-                    fdlg.AddCheckBox("部门角色", "Roles", opts, "None");
-                }
-                else
-                {
-                    var flags = user.Flags ?? UMC.Security.UserFlags.Normal;
-                    var opts = new Web.ListItemCollection();
-                    var selected = ((int)(flags & UMC.Security.UserFlags.Lock)) > 0;
-                    opts.Add("锁定", "1", selected);
-                    selected = ((int)(flags & UMC.Security.UserFlags.Disabled)) > 0;
-                    opts.Add("禁用", "16", selected);
-                    fdlg.AddCheckBox("状态", "Flags", opts, "0");
-
-                }
-                fdlg.Submit("确认提交", this.Context.Request, "User.Change");
+                fdlg.Submit("确认提交", "User.Change");
                 return fdlg;
             });
-            if (IsRole)
+            var flags = user.Flags ?? UMC.Security.UserFlags.Normal;
+            if (userValue["Flags"].Contains("Lock"))
             {
-                var roels = new List<Role>(Data.DataFactory.Instance().Roles());
-                var rids = new List<Data.Entities.Role>();
-                foreach (var k in userValue["Roles"].Split(','))
-                {
-                    switch (k)
-                    {
-                        case "None":
-                            break;
-                        default:
-                            var r = roels.Find(g => g.Rolename == k);
-                            if (r != null)
-                            {
-                                rids.Add(r);
-                            }
-                            break;
-                    }
-                }
-                Data.DataFactory.Instance().Put(user.Id.Value, rids.ToArray());
-
-                var sesions = UMC.Data.DataFactory.Instance().Session(user.Id.Value);
-                foreach (var v in sesions)
-                {
-                    switch (v.ContentType)
-                    {
-                        case "Settings":
-                            break;
-                        default:
-                            UMC.Data.DataFactory.Instance().Delete(v);
-                            break;
-                    }
-                }
+                flags |= Security.UserFlags.Lock;
             }
             else
             {
-
-                var Flags = UMC.Security.UserFlags.Normal;
-                foreach (var k in userValue["Flags"].Split(','))
+                if ((flags & Security.UserFlags.Lock) == Security.UserFlags.Lock)
                 {
-                    Flags = Flags | UMC.Data.Utility.Parse(k, UMC.Security.UserFlags.Normal);
+                    flags ^= Security.UserFlags.Lock;
                 }
-                Data.DataFactory.Instance().Put(new Data.Entities.User { Flags = Flags, Username = user.Username, Id = user.Id });
-
             }
+            var us = new Data.Entities.User { Flags = flags, Username = user.Username, Id = user.Id };
+            us.IsDisabled = userValue["Flags"].Contains("Disabled");
+
+            ClearSession(user.Id.Value);
+            Data.DataFactory.Instance().Put(us);
 
             this.Context.Send("User.Change", false);
             this.Prompt("设置成功");
         }
+        void ClearSession(Guid userid)
+        {
 
+            var sesions = UMC.Data.DataFactory.Instance().Session(userid);
+            foreach (var v in sesions)
+            {
+                switch (v.ContentType)
+                {
+                    case "Settings":
+                        break;
+                    default:
+                        UMC.Data.DataFactory.Instance().Delete(v);
+                        break;
+                }
+            }
+        }
 
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
@@ -135,7 +86,6 @@ namespace UMC.Activities
             {
                 var dlg = new UserDialog();
                 dlg.IsSearch = true;
-                dlg.IsPage = true;
                 if (request.IsMaster)
                 {
                     dlg.Menu("创建", "Settings", "User", Guid.Empty.ToString());
@@ -144,10 +94,7 @@ namespace UMC.Activities
                 return dlg;
             });
             var userId = UMC.Data.Utility.Guid(strUser) ?? Guid.Empty;
-            if (request.IsMaster == false)
-            {
-                this.Prompt("只有管理员才能管理账户");
-            }
+
             var setting = Web.UIDialog.AsyncDialog(this.Context, "Setting", d =>
              {
                  if (userId == Guid.Empty)
@@ -167,7 +114,9 @@ namespace UMC.Activities
 
                  var ui = UISection.Create(new UITitle("用户信息"));
 
+
                  ui.AddCell("别名", user.Alias, new UIClick(new WebMeta(request.Arguments).Put(d, "Alias")).Send(request.Model, request.Command));
+
                  ui.AddCell("账户", user.Username);
 
                  if (user.ActiveTime.HasValue)
@@ -179,7 +128,7 @@ namespace UMC.Activities
                  var status = "正常";
                  var flags = user.Flags ?? UMC.Security.UserFlags.Normal;
                  var opts = new Web.ListItemCollection();
-                 if ((int)(flags & UMC.Security.UserFlags.Disabled) > 0)
+                 if (user.IsDisabled == true)
                  {
                      status = "禁用";
                  }
@@ -187,30 +136,45 @@ namespace UMC.Activities
                  {
                      status = "锁定";
                  }
-                 ui.NewSection().AddCell("状态", status, new UIClick(new WebMeta(request.Arguments).Put(d, "Status")).Send(request.Model, request.Command));
+
+                 var ll = ui.NewSection()
+                   .AddCell("状态", status, new UIClick(new WebMeta(request.Arguments).Put(d, "Status")).Send(request.Model, request.Command));
 
 
-                 var roes = Data.DataFactory.Instance().Roles(user.Id.Value);
+                 if (String.IsNullOrEmpty(Data.DataFactory.Instance().Password(user.Id.Value)))
+                 {
+                     ll.AddCell("口令", "未开通", new UIClick(new WebMeta(request.Arguments).Put(d, "Passwrod")).Send(request.Model, request.Command));
+                 }
+                 else
+                 {
+                     ll.AddCell("口令", "已开通", new UIClick(new WebMeta(request.Arguments).Put(d, "NoPasswrod")).Send(request.Model, request.Command));
+                 }
+
+
+                 var roes = Data.DataFactory.Instance().Roles(user.Id.Value, 0);
 
                  var ui2 = ui.NewSection();
                  ui2.AddCell("拥有角色", "设置", new UIClick(new WebMeta(request.Arguments).Put(d, "Role")).Send(request.Model, request.Command));
                  foreach (var dr in roes)
                  {
-                     switch (dr.Rolename)
+                     switch (dr)
                      {
                          case UMC.Security.Membership.GuestRole:
                              break;
                          case UMC.Security.Membership.AdminRole:
-                             ui2.AddCell('\uf0c0', "超级管理员", dr.Rolename);
+                             ui2.Delete(UICell.UI('\uf0c0', "超级管理员", dr), new UIEventText()
+                             .Click(new UIClick(new WebMeta(request.Arguments).Put(d, "Rolename").Put("Rolename", dr).Put("Site", 0)).Send(request.Model, request.Command)));
+
                              break;
                          case UMC.Security.Membership.UserRole:
-                             ui2.AddCell('\uf0c0', "内部员工", dr.Rolename);
-                             break;
-                         case "Finance":
-                             ui2.AddCell('\uf0c0', "财务", dr.Rolename);
+                             ui2.Delete(UICell.UI('\uf0c0', "内部员工", dr), new UIEventText()
+                            .Click(new UIClick(new WebMeta(request.Arguments).Put(d, "Rolename").Put("Rolename", dr).Put("Site", 0)).Send(request.Model, request.Command)));
+
                              break;
                          default:
-                             ui2.AddCell('\uf0c0', dr.Rolename, "");
+                             ui2.Delete(UICell.UI('\uf0c0', dr, ""), new UIEventText()
+                            .Click(new UIClick(new WebMeta(request.Arguments).Put(d, "Rolename").Put("Rolename", dr).Put("Site", 0)).Send(request.Model, request.Command)));
+
                              break;
                      }
                  }
@@ -226,17 +190,24 @@ namespace UMC.Activities
                  var Organize = UMC.Data.DataFactory.Instance().Organizes(new User { Id = user.Id.Value });
 
                  var ui4 = ui.NewSection();
-                // .AddCell("所属组织")
-                ui4.AddCell("所属组织", "设置", new UIClick(new WebMeta(request.Arguments).Put(d, "ToOrganize")).Send(request.Model, request.Command));
+
+                 ui4.AddCell("所属组织", "设置", new UIClick(new WebMeta(request.Arguments).Put(d, "ToOrganize")).Send(request.Model, request.Command));
 
 
                  if (Organize.Length > 0)
                  {
-                    //  ui4.Header.Put("text", "所属组织");
-                    foreach (var s in Organize)
+                     foreach (var s in Organize)
                      {
-                         ui4.Delete(UICell.Create("UI", new WebMeta().Put("text", s.Caption).Put("Icon", "\uf0e8")), new UIEventText()
+                         if (request.IsMaster)
+                         {
+                             ui4.Delete(UICell.Create("UI", new WebMeta().Put("text", s.Caption).Put("Icon", "\uf0e8")), new UIEventText()
                              .Click(new UIClick(new WebMeta(request.Arguments).Put(d, "Organize").Put("OrganizeId", s.Id)).Send(request.Model, request.Command)));
+                         }
+                         else
+                         {
+                             ui4.Add(UICell.Create("UI", new WebMeta().Put("text", s.Caption).Put("Icon", "\uf0e8")));
+
+                         }
                      }
                  }
                  else
@@ -293,7 +264,7 @@ namespace UMC.Activities
                          ui5.Delete(UICell.Create("UI", new WebMeta().Put("value", UMC.Data.Utility.GetDate(s.UpdateTime), "text", s.ContentType)
                      .Put("Icon", "\uf286")), new UIEventText()
                   .Click(new UIClick(new WebMeta(request.Arguments).Put(d, "Seesion").Put("SessionKey", s.SessionKey)).Send(request.Model, request.Command)));
-                         break;
+
 
                      }
                  }
@@ -305,12 +276,16 @@ namespace UMC.Activities
 
                  return this.DialogValue("none");
              });
+            if (request.IsMaster == false)
+            {
+                this.Prompt("只有管理员才能管理账户");
+            }
             switch (setting)
             {
                 case "OrganizeMember":
                     {
 
-                        var OrganizeId = UMC.Data.Utility.Guid(this.AsyncDialog("OrganizeId", r => this.DialogValue(Guid.Empty.ToString()))) ?? Guid.Empty;
+                        var OrganizeId = UMC.Data.Utility.IntParse(this.AsyncDialog("OrganizeId", "0"), 0);// ?? Guid.Empty;
 
                         var sids = strUser.Split(',');
                         for (var i = 0; i < sids.Length; i++)
@@ -334,9 +309,19 @@ namespace UMC.Activities
                         this.Context.Send("User.Change", true);
                     }
                     break;
+
+                case "Rolename":
+                    {
+                        var Rolename = this.AsyncDialog("Rolename", r => this.DialogValue("none"));
+                        Data.DataFactory.Instance().Delete(new UserToRole { user_id = userId, Rolename = Rolename, Site = 0 });
+
+                        ClearSession(userId);
+                        this.Context.Send("User.Change", true);
+                    }
+                    break;
                 case "Organize":
                     {
-                        var OrganizeId = UMC.Data.Utility.Guid(this.AsyncDialog("OrganizeId", r => this.DialogValue(Guid.Empty.ToString()))) ?? Guid.Empty;
+                        var OrganizeId = UMC.Data.Utility.IntParse(this.AsyncDialog("OrganizeId", "0"), 0);// ?? Guid.Empty;
                         Data.DataFactory.Instance().Delete(new OrganizeMember { user_id = userId, org_id = OrganizeId });
 
                         this.Context.Send("User.Change", true);
@@ -344,8 +329,8 @@ namespace UMC.Activities
                     break;
                 case "ToOrganize":
                     {
-                        var OrganizeId = UMC.Data.Utility.Guid(
-                        this.AsyncDialog("OrganizeId", "Settings", "SelectOrganize"));
+                        var OrganizeId = UMC.Data.Utility.IntParse(
+                        this.AsyncDialog("OrganizeId", "Settings", "SelectOrganize"), 0);
 
                         Data.DataFactory.Instance().Put(new OrganizeMember
                         {
@@ -361,20 +346,27 @@ namespace UMC.Activities
                     break;
                 case "Role":
                     {
-                        var user = Data.DataFactory.Instance().User(userId);
-                        this.Setting(user.Username, true);
+
+                        var rolename = this.AsyncDialog("Rolename", "Settings", "SelectRole", new WebMeta().Put("Site", 0));
+                        Data.DataFactory.Instance().Put(new UserToRole
+                        {
+                            user_id = userId,
+                            Site = 0,
+                            Rolename = rolename
+                        });
+
+                        this.Context.Send("User.Change", true);
                     }
                     break;
                 case "Status":
                     {
-                        var user = Data.DataFactory.Instance().User(userId);
-                        this.Setting(user.Username, false);
+                        this.Setting(Data.DataFactory.Instance().User(userId));
                     }
                     break;
                 case "Auth":
                     {
                         var user = Data.DataFactory.Instance().User(userId);
-                        response.Redirect("Settings", "Auth", new UMC.Web.WebMeta().Put("Type", "User", "Value", user.Username), true);
+                        response.Redirect("Settings", "Auth", new UMC.Web.WebMeta().Put("Type", "User", "Value", user.Username).Put("Site", 0), true);
                     }
                     break;
                 case "Alias":
@@ -389,17 +381,28 @@ namespace UMC.Activities
                             fmDg.Title = "变更别名";
                             opts.Add("登录名", user.Username);
                             fmDg.AddText("新别名", "Alias", user.Alias);
-                            fmDg.Submit("确认提交", request, "User.Change");
+                            fmDg.Submit("确认提交", "User.Change");
                             return fmDg;
                         });
 
                         UMC.Security.Membership.Instance().ChangeAlias(user.Username, users["Alias"]);
-                        this.Prompt(String.Format("{0}的别名已重置成{1}", user.Username, users["Alias"]), false);
+                        this.Prompt(String.Format("{0}的别名已重置", user.Username, users["Alias"]), false);
 
                         this.Context.Send("User.Change", true);
                     }
                     break;
+                case "NoPasswrod":
+                    {
 
+                        this.AsyncDialog("Confirm", g => new UIConfirmDialog("确认移除此账户的口令登录吗"));
+                        var user = Data.DataFactory.Instance().User(userId) ?? new User();
+                        UMC.Data.DataFactory.Instance().Delete(new Password { Key = userId });
+
+                        this.Prompt(String.Format("已经移除{0}密码登录", user.Alias), false);
+
+                        this.Context.Send("User.Change", true);
+                    }
+                    break;
                 case "Passwrod":
                     {
                         var user = Data.DataFactory.Instance().User(userId) ?? new User();
@@ -412,7 +415,7 @@ namespace UMC.Activities
                             opts.Add("登录名", user.Username);
                             fmDg.AddTextValue(opts);
                             fmDg.AddPassword("密码", "Password", true);
-                            fmDg.Submit("确认提交", request, "User.Change");
+                            fmDg.Submit("确认提交", "User.Change");
 
                             return fmDg;
                         });
@@ -425,15 +428,25 @@ namespace UMC.Activities
                     break;
                 case "Create":
                     {
-                        var OrganizeId = UMC.Data.Utility.Guid(this.AsyncDialog("OrganizeId", r => this.DialogValue(Guid.Empty.ToString()))) ?? Guid.Empty;
+                        var OrganizeId = UMC.Data.Utility.IntParse(this.AsyncDialog("OrganizeId", "0"), 0);// ?? Guid.Empty;
 
                         var users = this.AsyncDialog("User", d =>
                           {
                               var fmDg = new Web.UIFormDialog();
+
                               fmDg.Title = "新增账户";
+                              if (OrganizeId != 0)
+                              {
+                                  var org = UMC.Data.DataFactory.Instance().Organize(OrganizeId);
+
+                                  if (org != null)
+                                  {
+                                      fmDg.AddTextValue().Put("所属组织", org.Caption);
+                                  }
+                              }
                               fmDg.AddText("账户名", "Username", String.Empty);
                               fmDg.AddText("别名", "Alias", String.Empty);
-                              fmDg.Submit("确认提交", request, "User.Change");
+                              fmDg.Submit("确认提交", "User.Change");
                               return fmDg;
                           });
                         if (userId != Guid.Empty)
@@ -453,10 +466,10 @@ namespace UMC.Activities
                             }
                             else
                             {
-                                UMC.Security.Membership.Instance().AddRole(users["Username"].Trim(), UMC.Security.Membership.UserRole);
+                                UMC.Security.Membership.Instance().AddRole(users["Username"].Trim(), 0, UMC.Security.Membership.UserRole);
                             }
                         }
-                        if (OrganizeId != Guid.Empty)
+                        if (OrganizeId != 0)
                         {
                             UMC.Data.DataFactory.Instance().Put(new OrganizeMember
                             {

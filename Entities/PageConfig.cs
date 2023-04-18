@@ -1,9 +1,9 @@
-using System;
-
+﻿using System;
+using UMC.Data;
 
 namespace UMC.Activities.Entities
 {
-    public class Design_Config
+    public partial class PageConfig : Record
     {
         public Guid? Id
         {
@@ -24,6 +24,10 @@ namespace UMC.Activities.Entities
         public int? Sequence
         {
             get; set;
+        }
+        public Guid? AppKey
+        {
+            get;set;
         }
 
 

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-using System.Collections;
+using System.Linq;
 using UMC.Web;
 using UMC.Data;
 using UMC.Security;
@@ -10,180 +10,247 @@ using UMC.Security;
 namespace UMC.Activities
 {
     class SettingsAuthActivity : WebActivity
-    { 
+    {
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-
-            var roles = UMC.Data.DataFactory.Instance().Roles();
             var RoleType = this.AsyncDialog("Type", d =>
             {
-                if (roles.Length < 4)
-                {
-                    return Web.UIDialog.ReturnValue("User");
-                }
                 var rd = new Web.UIRadioDialog() { Title = "选择设置账户类型" };
                 rd.Options.Add("角色", "Role");
                 rd.Options.Add("用户", "User");
                 rd.Options.Add("组织", "Organize");
                 return rd;
-            }); 
-
-            var setValue = this.AsyncDialog("Value", d =>
+            });
+            var site = UMC.Data.Utility.IntParse(this.AsyncDialog("Site", "0"), 0);
+            String setValue;
+            switch (RoleType)
             {
-                if (RoleType == "Role")
+                case "Role":
+                    setValue = this.AsyncDialog("Value", request.Model, "SelectRole", new WebMeta().Put("Site", site));
+                    break;
+                default:
+                case "User":
+                    setValue = this.AsyncDialog("Value", request.Model, "SelectUser");
+                    break;
+                case "Organize":
+                    setValue = this.AsyncDialog("Value", request.Model, "SelectOrganize");
+                    break;
+            }
+            var wildcardKey = this.AsyncDialog("Authority", d =>
+            {
+                var limit = this.AsyncDialog("limit", "none");
+                request.Arguments.Remove("limit");
+                if (limit == "none")
                 {
-                    var rd = new Web.UIRadioDialog() { Title = "请选择设置权限的角色" };
+                    this.Context.Send(new UISectionBuilder(request.Model, request.Command, request.Arguments)
+                            .Builder(), true);
+                }
+                var ui = UISection.Create();
 
+                var form = request.SendValues ?? new UMC.Web.WebMeta();
+                int start = UMC.Data.Utility.IntParse(form["start"], 0);
 
-                    Utility.Each(roles,
-                        dr =>
-                        {
-                            switch (dr.Rolename)
-                            {
-                                case UMC.Security.Membership.AdminRole:
-                                case UMC.Security.Membership.GuestRole:
-                                    break;
-                                default:
-                                    rd.Options.Add(dr.Rolename, dr.Rolename);
-                                    break;
-                            }
-                        });
-                    return rd;
+                var search = new UMC.Data.Entities.Authority() { Site = site };
+                var Keyword = (form["Keyword"] as string ?? String.Empty);
+                if (String.IsNullOrEmpty(Keyword) == false)
+                {
+                    search.Key = Keyword;
                 }
                 else
                 {
-                    return new UserDialog() { Title = "请选择设置权限的账户" };
-                }
-            });
 
-            var wdcks = Web.WebServlet.Auths();
-
-            var ids = new List<String>();
-            Utility.Each(wdcks, g => ids.Add(g.Get("key")));
-            if (wdcks.Count == 0)
-            {
-                this.Prompt("现在的功能不需要设置权限");
-            }
-            var wdks = new List<UMC.Data.Entity<UMC.Data.Entities.Wildcard, List<UMC.Security.Authorize>>>();
-
-
-
-            Utility.Each(UMC.Data.DataFactory.Instance().Wildcard(ids.ToArray()), dr =>
-            {
-                wdks.Add(new Data.Entity<Data.Entities.Wildcard, List<Security.Authorize>>(dr, dr.Authorizes));
-            });
-
-
-            var Wildcard = this.AsyncDialog("Wildcards", d =>
-            {
-                var fmdg = new Web.UICheckboxDialog();
-                fmdg.Title = "权限设置";
-                fmdg.DefaultValue = "None";
-
-
-                foreach (var cm in wdcks)
-                {
-                    var id = cm.Get("key");
-
-                    var wdk = wdks.Find(w => String.Equals(w.Value.WildcardKey, id, StringComparison.CurrentCultureIgnoreCase));
-                    if (wdk != null)
+                    var nextKey = this.AsyncDialog("NextKey", g => this.DialogValue("Header"));
+                    switch (nextKey)
                     {
-                        if (wdk.Config != null)
-                        {
-                            var isS = false;
+                        case "Header":
+                            ui.UIHeader = new UIHeader().Search("搜索", String.Empty, "Authority");
                             switch (RoleType)
                             {
-                                case "Organize":
-
-                                    isS = wdk.Config.Exists(a => a.Type == Security.AuthorizeType.OrganizeDeny
-                                        && String.Equals(a.Value, setValue, StringComparison.CurrentCultureIgnoreCase));
-                                    break;
                                 case "Role":
-                                    isS = wdk.Config.Exists(a => a.Type == Security.AuthorizeType.RoleDeny
-                                        && String.Equals(a.Value, setValue, StringComparison.CurrentCultureIgnoreCase));
+                                    ui.Title = new UITitle("角色授权");
+                                    ui.AddCell("角色名", setValue);
                                     break;
                                 default:
-                                    isS = wdk.Config.Exists(a => a.Type == Security.AuthorizeType.UserDeny
-                                        && String.Equals(a.Value, setValue, StringComparison.CurrentCultureIgnoreCase));
+                                case "User":
+                                    ui.Title = new UITitle("账户授权");
+                                    ui.AddCell("账户名", setValue);
                                     break;
-
+                                case "Organize":
+                                    ui.Title = new UITitle("组织授权");
+                                    var guidId = Utility.Guid(setValue, true);
+                                    var org = UMC.Data.DataFactory.Instance().Organize(Utility.IntParse(setValue, 0));
+                                    if (org == null)
+                                    {
+                                        ui.AddCell("组织名", setValue);
+                                    }
+                                    else
+                                    {
+                                        ui.AddCell("组织名", org.Caption);
+                                    }
+                                    break;
                             }
-                            fmdg.Options.Add(cm.Get("desc"), id, !isS);
-                        }
-                        else
-                        {
-                            fmdg.Options.Add(cm.Get("desc"), id, true);
-                        }
+                            ui = ui.NewSection();
+                            break;
+                    }
+                }
+                ui.Key = "Authority";
+
+                int next;
+
+
+                UMC.Data.Utility.Each(Data.DataFactory.Instance().Search(search, start, Utility.IntParse(limit, 25), out next), dr =>
+                 {
+                     var auth = AuthManager.Authorize(dr.Body);
+                     var isS = false;
+                     switch (RoleType)
+                     {
+                         case "Organize":
+
+                             isS = auth.Exists(a => a.Item1 == Security.AuthorizeType.OrganizeDeny
+                                 && String.Equals(a.Item2, setValue, StringComparison.CurrentCultureIgnoreCase));
+                             break;
+                         case "Role":
+                             isS = auth.Exists(a => a.Item1 == Security.AuthorizeType.RoleDeny
+                                 && String.Equals(a.Item2, setValue, StringComparison.CurrentCultureIgnoreCase));
+                             break;
+                         default:
+                             isS = auth.Exists(a => a.Item1 == Security.AuthorizeType.UserDeny
+                                 && String.Equals(a.Item2, setValue, StringComparison.CurrentCultureIgnoreCase));
+                             break;
+
+                     }
+                     var cData = new WebMeta();
+                     if (String.IsNullOrEmpty(dr.Desc))
+                     {
+
+                         cData.Put("text", dr.Key);
+                     }
+                     else
+                     {
+                         cData.Put("text", dr.Desc);
+
+                     }
+                     if (isS)
+                     {
+                         cData.Put("Color", "#1890ff").Put("Icon", "\uea07");
+                     }
+                     else
+                     {
+                         cData.Put("Icon", "\uea01");
+                     }
+                     var cell = UICell.Create("UI", cData.Put("click", UIClick.Click(new UIClick(new WebMeta(request.Arguments).Put(d, dr.Key)).Send(request.Model, request.Command))));
+
+                     ui.Add(cell);
+                 });
+                if (ui.Length == 0)
+                {
+                    if (String.IsNullOrEmpty(search.Key))
+                    {
+                        ui.Add("Desc", new UMC.Web.WebMeta().Put("desc", "未设置授权符").Put("icon", "\uEA05"), new UMC.Web.WebMeta().Put("desc", "{icon}\n{desc}"),
+               new UIStyle().Align(1).Color(0xaaa).Padding(20, 20).BgColor(0xfff).Size(12).Name("icon", new UIStyle().Font("wdk").Size(60)));
+
                     }
                     else
                     {
-                        fmdg.Options.Add(cm.Get("desc"), id, true);
-                    }
-                }
+                        ui.Add("Desc", new UMC.Web.WebMeta().Put("desc", "未有搜索对应授权符").Put("icon", "\uEA05"), new UMC.Web.WebMeta().Put("desc", "{icon}\n{desc}"),
+               new UIStyle().Align(1).Color(0xaaa).Padding(20, 20).BgColor(0xfff).Size(12).Name("icon", new UIStyle().Font("wdk").Size(60)));
 
-                return fmdg;
+                    }
+
+                }
+                ui.IsNext = next > 0;
+                if (ui.IsNext.Value)
+                {
+                    ui.StartIndex = next;
+                }
+                response.Redirect(ui);
+
+                return this.DialogValue("none");
 
             });
-            foreach (var cm in wdcks)
+            if (request.IsMaster == false)
             {
-                var id = cm.Get("key");
-                var wdk = wdks.Find(w => String.Equals(w.Value.WildcardKey, id, StringComparison.CurrentCultureIgnoreCase));
-
-                List<Security.Authorize> authorizes;
-                if (wdk != null)
+                if (site != 0)
                 {
-                    authorizes = wdk.Config;
+                    var rols = UMC.Data.DataFactory.Instance().Roles(this.Context.Token.UserId.Value, site);
+                    if (rols.Contains(UMC.Security.Membership.AdminRole) == false)
+                    {
+                        this.Prompt("需要管理员权限才能设置");
+                    }
                 }
                 else
                 {
-                    authorizes = new List<Security.Authorize>();
+                    this.Prompt("需要管理员权限才能设置");
                 }
+            }
+            var wdk = UMC.Data.DataFactory.Instance().Authority(site, wildcardKey);
+
+            List<Tuple<byte,string>> authorizes;
+            if (wdk != null)
+            {
+                authorizes = AuthManager.Authorize(wdk.Body);
+            }
+            else
+            {
+                authorizes = new List<Tuple<byte, string>>();
+            }
+            int count = 0;
+            switch (RoleType)
+            {
+                case "Role":
+                    count = authorizes.RemoveAll(a => (a.Item1  == Security.AuthorizeType.RoleDeny || a.Item1 == Security.AuthorizeType.RoleAllow)
+                   && String.Equals(a.Item2, setValue, StringComparison.CurrentCultureIgnoreCase));
+
+                    break;
+                case "Organize":
+                    count = authorizes.RemoveAll(a => (a.Item1 == Security.AuthorizeType.OrganizeAllow || a.Item1 == Security.AuthorizeType.OrganizeDeny)
+                    && String.Equals(a.Item2, setValue, StringComparison.CurrentCultureIgnoreCase));
+
+                    break;
+                default:
+                case "User":
+                    count = authorizes.RemoveAll(a => (a.Item1 == Security.AuthorizeType.UserAllow || a.Item1 == Security.AuthorizeType.UserDeny)
+                    && String.Equals(a.Item2, setValue, StringComparison.CurrentCultureIgnoreCase));
+
+                    break;
+            }
+            var uiData = new WebMeta();
+            if (count == 0)
+            {
                 switch (RoleType)
                 {
                     case "Role":
-                        authorizes.RemoveAll(a => (a.Type == Security.AuthorizeType.RoleDeny || a.Type == Security.AuthorizeType.RoleAllow)
-                      && String.Equals(a.Value, setValue, StringComparison.CurrentCultureIgnoreCase));
+                        authorizes.Add(Tuple.Create(Security.AuthorizeType.RoleAllow, setValue));
 
                         break;
                     case "Organize":
-                        authorizes.RemoveAll(a => (a.Type == Security.AuthorizeType.OrganizeAllow || a.Type == Security.AuthorizeType.OrganizeDeny)
-                        && String.Equals(a.Value, setValue, StringComparison.CurrentCultureIgnoreCase));
+                        authorizes.Add(Tuple.Create(Security.AuthorizeType.OrganizeAllow, setValue));
 
                         break;
-                    case "User":
-                        authorizes.RemoveAll(a => (a.Type == Security.AuthorizeType.UserAllow || a.Type == Security.AuthorizeType.UserDeny)
-                        && String.Equals(a.Value, setValue, StringComparison.CurrentCultureIgnoreCase));
+                    default:
+                        authorizes.Add(Tuple.Create(Security.AuthorizeType.UserAllow, setValue));
 
                         break;
                 }
-                if (Wildcard.IndexOf(id) == -1)
-                {
-                    switch (RoleType)
-                    {
-                        case "Role":
-                            authorizes.Add(new Security.Authorize { Value = setValue, Type = Security.AuthorizeType.RoleDeny });
-
-                            break;
-                        case "Organize":
-                            authorizes.Add(new Security.Authorize { Value = setValue, Type = Security.AuthorizeType.OrganizeDeny });
-
-                            break;
-                        default:
-                            authorizes.Add(new Security.Authorize { Value = setValue, Type = Security.AuthorizeType.UserDeny });
-
-                            break;
-                    }
-
-                    UMC.Data.DataFactory.Instance().Put(new UMC.Data.Entities.Wildcard
-                    {
-                        Authorizes = UMC.Data.JSON.Serialize(authorizes),
-                        WildcardKey = id,
-                        Description = cm.Get("desc")
-                    });
-                }
-
+                uiData.Put("Color", "#1890ff").Put("Icon", "\uea07");
             }
-            this.Prompt("权限设置成功");
+            else
+            {
+
+                uiData.Put("Icon", "\uea01").Put("Color", "#000");
+            }
+            UMC.Data.DataFactory.Instance().Put(new UMC.Data.Entities.Authority
+            {
+                Site = site,
+                Body = AuthManager.Authorize(authorizes.ToArray()),
+                Key = wildcardKey
+            });
+
+            var section = Utility.IntParse(this.AsyncDialog("section", g => this.DialogValue("1")), 0);
+            var row = Utility.IntParse(this.AsyncDialog("row", g => this.DialogValue("1")), 0);
+
+            new UISection.Editer(section, row).Value(uiData).Builder(this.Context, this.AsyncDialog("UI", g => this.DialogValue("none")), true);
+
 
         }
     }

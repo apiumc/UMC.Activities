@@ -1,4 +1,4 @@
-
+﻿
 
 using System;
 using System.Linq;
@@ -34,10 +34,10 @@ namespace UMC.Activities
                 StoreDesignTypeProducts = 512,
                 StoreDesignTypeDiscounts = 1024,
                 StoreDesignTypeDiscount = 2048,
-                StoreDesignType = 2048 * 2;
+                StoreDesignType = 4096;
 
 
-        void Sliders(UISlider slider, Guid parentId, String type, List<Design_Item> baners)
+        void Sliders(UISlider slider, Guid parentId, String type, List<PageItem> baners)
         {
             var webr = UMC.Data.WebResource.Instance();
             foreach (var b in baners)
@@ -69,7 +69,7 @@ namespace UMC.Activities
 
         }
         //
-        void Sliders(Design_Item parent, List<Design_Item> baners, UISection U)
+        void Sliders(PageItem parent, List<PageItem> baners, UISection U)
         {
             if (baners.Count > 0)
             {
@@ -116,9 +116,9 @@ namespace UMC.Activities
 
             }
         }
-        public static List<WebMeta> GetBanner(bool editer, params Guid[] ids)
+        public static List<WebMeta> GetBanner(Guid appkey, bool editer, params Guid[] ids)
         {
-            var maxItems = DataFactory.Instance().DesignItems(ids[0], ids).ToList();
+            var maxItems = DataFactory.Instance().DesignItems(appkey, ids[0], ids).ToList();
 
 
             var webr = UMC.Data.WebResource.Instance();
@@ -136,7 +136,7 @@ namespace UMC.Activities
                 }
                 return true;
             });
-            List<Design_Item> items = new List<Design_Item>();
+            List<PageItem> items = new List<PageItem>();
             foreach (var did in ids)
             {
                 items = maxItems.FindAll(g => g.design_id == did);
@@ -151,7 +151,7 @@ namespace UMC.Activities
             {
                 if (designItem == null)
                 {
-                    designItem = new Design_Item
+                    designItem = new PageItem
                     {
                         Id = Guid.NewGuid(),
                         Type = UIDesigner.StoreDesignTypeBanners,
@@ -186,7 +186,7 @@ namespace UMC.Activities
             return lis;//
         }
 
-        static UIClick Click(Design_Item item, Design_Item design, bool editer)
+        static UIClick Click(PageItem item, PageItem design, bool editer)
         {
             if (editer)
             {
@@ -206,11 +206,11 @@ namespace UMC.Activities
             }
         }
 
-        void Icons(Guid parentId, List<Design_Item> baners, UISection U)
+        void Icons(Guid parentId, List<PageItem> baners, UISection U)
         {
             List<UIEventText> list = new List<UIEventText>();
             UMC.Data.WebResource webr = UMC.Data.WebResource.Instance();
-            foreach (Design_Item b in baners)
+            foreach (PageItem b in baners)
             {
                 UIEventText slider = new UIEventText(b.ItemName);
                 if (String.IsNullOrEmpty(b.Data) == false)
@@ -252,7 +252,7 @@ namespace UMC.Activities
 
         }
 
-        void Items(Design_Item parent, List<Design_Item> baners, UISection U)
+        void Items(PageItem parent, List<PageItem> baners, UISection U)
         {
             Guid parentId = parent.Id.Value;
             //List<UIItem> list = new List<UIItem>();
@@ -260,7 +260,7 @@ namespace UMC.Activities
             UMC.Data.WebResource webr = UMC.Data.WebResource.Instance();
             for (int i = 0; i < baners.Count && i < 4; i++)
             {
-                Design_Item b = baners[i];
+                PageItem b = baners[i];
                 WebMeta icon = UMC.Data.JSON.Deserialize<WebMeta>(b.Data) ?? new UMC.Web.WebMeta();
                 item.Add(icon);
                 icon.Put("click", this.Click(b));
@@ -303,7 +303,7 @@ namespace UMC.Activities
         }
 
 
-        void TitleDesc(Design_Item parent, List<Design_Item> items, UISection U)
+        void TitleDesc(PageItem parent, List<PageItem> items, UISection U)
         {
 
             UMC.Data.WebResource webr = UMC.Data.WebResource.Instance();
@@ -316,7 +316,7 @@ namespace UMC.Activities
             if (rows <= 1)
             {
                 int[] padding = UIStyle.Padding(config);
-                foreach (Design_Item i in items)
+                foreach (PageItem i in items)
                 {
                     UICell tdesc = this.TitleDesc(config, i, "cms1", webr);
                     if (padding.Length > 0)
@@ -353,7 +353,7 @@ namespace UMC.Activities
                     for (int c = 0; c < rows; c++)
                     {
                         UICell p = TitleDesc(config, items[i + c], "350", webr);
-                        ls.Add(new UMC.Web.WebMeta().Put("value", p.Data).Put("format", p.Format).Put("style", p.Style));
+                        ls.Add(new UMC.Web.WebMeta().Put("value", p.Data).Put("format", p.Formats).Put("style", p.Style));
 
                     }
                     UICell desc = UICell.Create("ItemsTitleDesc", new UMC.Web.WebMeta().Put("items", ls.ToArray()).Put("total", rows).Put("show", m));
@@ -372,7 +372,7 @@ namespace UMC.Activities
                     for (int c = total; c > 0; c--)
                     {
                         UICell p = TitleDesc(config, items[len - c], "350", webr);
-                        ls.Add(new UMC.Web.WebMeta().Put("value", p.Data).Put("format", p.Format).Put("style", p.Style));
+                        ls.Add(new UMC.Web.WebMeta().Put("value", p.Data).Put("format", p.Formats).Put("style", p.Style));
 
                     }
 
@@ -401,7 +401,7 @@ namespace UMC.Activities
             }
         }
 
-        UIImageTitleDescBottom TitleDesc(WebMeta config, Design_Item item, String img, UMC.Data.WebResource webr)
+        UIImageTitleDescBottom TitleDesc(WebMeta config, PageItem item, String img, UMC.Data.WebResource webr)
         {
 
             //WebMeta data = Utility.isNull(UMC.Data.JSON.deserialize(item.Data, WebMeta.class), new UMC.Web.WebMeta());
@@ -467,7 +467,7 @@ namespace UMC.Activities
 
         }
 
-        public static UIClick Click(Design_Item item, bool editer)
+        public static UIClick Click(PageItem item, bool editer)
         {
             if (editer)
             {
@@ -484,17 +484,17 @@ namespace UMC.Activities
             return date.HasValue ? UMC.Data.Utility.TimeSpan(date.Value) : 0;
         }
 
-        UIClick Click(Design_Item item)
+        UIClick Click(PageItem item)
         {
 
             return Click(item, _editer);
         }
 
-        private UISection Section(UISection Us, List<Design_Item> items)
+        private UISection Section(UISection Us, List<PageItem> items)
         {
-            List<Design_Item> groups = items.FindAll(g => g.for_id == Guid.Empty);
+            List<PageItem> groups = items.FindAll(g => g.for_id == Guid.Empty);
 
-            Design_Item b = groups.Find(g => g.Type == StoreDesignTypeBanners);
+            PageItem b = groups.Find(g => g.Type == StoreDesignTypeBanners);
 
 
             if (b != null)
@@ -507,7 +507,7 @@ namespace UMC.Activities
             {
                 groups.Remove(b);
             }
-            foreach (Design_Item bp in groups)
+            foreach (PageItem bp in groups)
             {
                 UISection use = Us;
                 if (Us.Length > 0)
@@ -557,8 +557,8 @@ namespace UMC.Activities
                             more.Style.Padding(UIStyle.Padding(config));
                             use.Add(more);
                         }
-                        List<Design_Item> groups2 = items.FindAll(it => it.for_id == (bp.Id));// items.FindAll(it = > it.for_id == bp.Id);
-                        foreach (Design_Item bp2 in groups2)
+                        List<PageItem> groups2 = items.FindAll(it => it.for_id == (bp.Id));// items.FindAll(it = > it.for_id == bp.Id);
+                        foreach (PageItem bp2 in groups2)
                         {
                             switch (bp2.Type)
                             {
@@ -592,18 +592,18 @@ namespace UMC.Activities
 
 
 
-        public UISection Section(String title, Guid design_id)
+        public UISection Section(String title, Guid appKey, Guid design_id)
         {
 
             UISection Us = String.IsNullOrEmpty(title) ? UISection.Create() : UISection.Create(new UITitle(title));
-            return this.Section(Us, design_id);
+            return this.Section(Us, appKey, design_id);
         }
 
-        public UISection Section(UISection Us, Guid design_id)
+        public UISection Section(UISection Us, Guid appKey, Guid design_id)
         {
             //   List<Design_Item> items = new List<Design_Item>();
 
-            var items = DataFactory.Instance().DesignItems(design_id).OrderBy(r => r.Seq ?? 0).ToList();
+            var items = DataFactory.Instance().DesignItems(appKey, design_id).OrderBy(r => r.Seq ?? 0).ToList();
             //Database.Instance().ObjectEntity<Design_Item>()
             //        .Where.And().Equal(new Design_Item() { design_id = (design_id) })
             //        .Entities.Order.Asc(new Design_Item() { Seq = 0 }).Entities

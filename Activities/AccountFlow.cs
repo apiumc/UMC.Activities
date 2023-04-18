@@ -7,13 +7,15 @@ using UMC.Web;
 namespace UMC.Activities
 {
     [Mapping("Account", Desc = "客户服务")]
-    class AccountFlow : WebFlow
+    public class AccountFlow : WebFlow
     {
 
         public override Web.WebActivity GetFirstActivity()
         {
             switch (this.Context.Request.Command)
             {
+                case "Scan":
+                    return new AccountScanActivity();
                 case "Menu":
                     return new AccountMenuActivity();
                 case "Check":
@@ -38,9 +40,5 @@ namespace UMC.Activities
             return Web.WebActivity.Empty;
         }
 
-        public override Web.WebActivity GetNextActivity(string ActivityHeader)
-        {
-            return WebActivity.Empty;
-        }
     }
 }

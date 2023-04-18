@@ -23,6 +23,11 @@ namespace UMC.Activities
 
     public class DataFactory
     {
+        static DataFactory()
+        {
+            HotCache.Register<PageConfig>("Id").Register("AppKey", "GroupBy", "Id");
+            HotCache.Register<PageItem>("Id").Register("AppKey", "design_id", "for_id", "Id");
+        }
         public static DataFactory Instance()
         {
             return _Instance;
@@ -33,35 +38,31 @@ namespace UMC.Activities
             _Instance = dataFactory;
         }
 
-        public virtual Design_Config[] DesignConfig(String groupBy)
+        public virtual PageConfig[] DesignConfig(Guid appKey, String groupBy)
         {
-
-
-            return Database.Instance().ObjectEntity<Design_Config>()
-                         .Where.And().Equal(new Design_Config
-                         {
-                             GroupBy = groupBy,
-                         }).Entities.Query();
+            int index;
+            return HotCache.Find(new PageConfig { AppKey = appKey, GroupBy = groupBy }, 0, 100, out index)
+                .OrderBy(r => r.Sequence ?? 0).ToArray();
 
         }
         public virtual Data.Entities.Location[] Location(int parent, Data.Entities.LocationType type)
         {
-            var webr = new Uri($"https://api.365lu.cn/Location?ParentId={parent}&Type={type}").WebRequest(); 
+            var webr = new Uri($"https://api.apiumc.com/Location?ParentId={parent}&Type={type}").WebRequest();
 
             webr.Headers.Add("umc-client-pfm", "sync");
             webr.Headers.Add("umc-sync-type", "array");
-            var httpResponse = webr.Get();//.ReadAsString();
+            var httpResponse = webr.Get();
             if (httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                return UMC.Data.JSON.Deserialize<Data.Entities.Location[]>(httpResponse.ReadAsString());
-                
+                return UMC.Data.JSON.Deserializes<Data.Entities.Location>(httpResponse.ReadAsString());
+
             }
-            return new Data.Entities.Location[0]; 
+            return new Data.Entities.Location[0];
 
         }
         public virtual Data.Entities.Location Location(int code)
         {
-            var webr = new Uri($"https://api.365lu.cn/Location?Id={code}").WebRequest();
+            var webr = new Uri($"https://api.apiumc.com/Location?Id={code}").WebRequest();
 
             webr.Headers.Add("umc-client-pfm", "sync");
             webr.Headers.Add("umc-sync-type", "single");
@@ -71,95 +72,84 @@ namespace UMC.Activities
                 return UMC.Data.JSON.Deserialize<Data.Entities.Location>(httpResponse.ReadAsString());
 
             }
-            return null; 
+            return null;
 
         }
-        public virtual Design_Item[] DesignItems(Guid designId, params Guid[] designIds)
+        public virtual PageItem[] DesignItems(Guid appKey, Guid designId)
         {
-            return Database.Instance().ObjectEntity<Design_Item>()
-                         .Where.And().In(new Design_Item
-                         {
-                             design_id = designId,
-                         }, designIds).Entities.Order.Asc(new Design_Item { Seq = 0 }).Entities.Query();
+            int index;
+            var cache = HotCache.Cache<PageItem>();
+            return cache.Find(new PageItem { AppKey = appKey, design_id = designId }, 0, out index);//, "design_id", designIds);
+        }
+        public virtual PageItem[] DesignItems(Guid appKey, Guid designId,  Guid[] designIds)
+        {
+            int index;
+            var cache = HotCache.Cache<PageItem>();
+            return cache.Find(new PageItem { AppKey = appKey, design_id = designId }, 0, out index, "design_id", designIds);
 
         }
-        public virtual void Delete(Design_Item item)
-        {
-            if (item.Id.HasValue)
-            {
-                Database.Instance().ObjectEntity<Design_Item>()
-               .Where.And().Equal(new Design_Item
-               {
-                   Id = item.Id.Value,
-               }).Entities.Delete();
-            }
-        }
-        public virtual void Put(Design_Item item)
+        public virtual void Delete(PageItem item)
         {
             if (item.Id.HasValue)
             {
-                Database.Instance().ObjectEntity<Design_Item>()
-               .Where.And().Equal(new Design_Item
-               {
-                   Id = item.Id.Value,
-               }).Entities.IFF(e => e.Update(item) == 0, e => e.Insert(item));
+                HotCache.Cache<PageItem>().Delete(item);
             }
         }
-
-        public virtual void Delete(Design_Config item)
+        public virtual void Put(PageItem item)
         {
             if (item.Id.HasValue)
             {
-                Database.Instance().ObjectEntity<Design_Config>()
-               .Where.And().Equal(new Design_Config
-               {
-                   Id = item.Id.Value,
-               }).Entities.Delete();
+                HotCache.Cache<PageItem>().Put(item);
             }
         }
-        public virtual void Put(Design_Config item)
+
+        public virtual void Delete(PageConfig item)
         {
             if (item.Id.HasValue)
             {
-                Database.Instance().ObjectEntity<Design_Config>()
-               .Where.And().Equal(new Design_Config
-               {
-                   Id = item.Id.Value,
-               }).Entities.IFF(e => e.Update(item) == 0, e => e.Insert(item));
+                HotCache.Cache<PageConfig>().Delete(item);
+            }
+        }
+        public virtual void Put(PageConfig item)
+        {
+            if (item.Id.HasValue)
+            {
+                HotCache.Cache<PageConfig>().Put(item);
             }
         }
 
-        public virtual Design_Item[] DesignItems(Guid designId, Guid forid)
+        public virtual PageItem[] DesignItems(Guid appKey, Guid designId, Guid forid)
         {
 
-
-            return Database.Instance().ObjectEntity<Design_Item>()
-                         .Where.And().Equal(new Design_Item
-                         {
-                             design_id = designId,
-                             for_id = forid,
-                         }).Entities.Order.Asc(new Design_Item { Seq = 0 }).Entities.Query();
+            int index;
+            var cache = HotCache.Cache<PageItem>();
+            return cache.Find(new PageItem
+            {
+                AppKey = appKey,
+                design_id = designId,
+                for_id = forid,
+            }, 0, out index);
 
         }
 
-        public virtual Design_Item DesignItem(Guid itemid)
+        public virtual PageItem DesignItem(Guid itemid)
         {
 
 
-            return Database.Instance().ObjectEntity<Design_Item>()
-                         .Where.And().Equal(new Design_Item
-                         {
-                             Id = itemid,
-                         }).Entities.Single();
+            return HotCache.Cache<PageItem>().Get(new PageItem
+            {
+                Id = itemid,
+            });
+
 
         }
-        public virtual Design_Config DesignConfig(Guid root)
+        public virtual PageConfig DesignConfig(Guid root)
         {
-            return Database.Instance().ObjectEntity<Design_Config>()
-                         .Where.And().Equal(new Design_Config
-                         {
-                             Id = root
-                         }).Entities.Single();
+            return HotCache.Cache<PageConfig>().Get(new PageConfig
+            {
+                Id = root,
+            });
+
 
         }
     }

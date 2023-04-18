@@ -6,7 +6,7 @@ using UMC.Web;
 namespace UMC.Activities
 {
     [Mapping("UI", Auth = WebAuthType.All, Desc = "UI页面")]
-    class UIFlow : WebFlow
+    public class UIFlow : WebFlow
     {
         public override WebActivity GetFirstActivity()
         {
@@ -17,7 +17,7 @@ namespace UMC.Activities
                 case "App":
                     return new UIAppActivity();
                 case "Home":
-                    return new DesignUIActivity(false);
+                    return new DesignPageActivity(false);
                 case "Search":
                     return new UISearchActivity();
                 case "Config":

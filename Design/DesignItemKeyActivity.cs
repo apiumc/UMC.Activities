@@ -7,19 +7,17 @@ using UMC.Web;
 
 namespace UMC.Activities
 {
-    class DesignKeyItemActivity : Web.WebActivity
+    class DesignItemKeyActivity : Web.WebActivity
     {
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current; 
+            var user = this.Context.Token.Identity();
 
             var strId = this.AsyncDialog("Id", g => this.DialogValue(Guid.NewGuid().ToString()));
-            var itemId = Data.Utility.Guid(strId, true);//, true).Value;
+            var itemId = Data.Utility.Guid(strId, true);
 
 
 
-            //var itemsEntity = Database.Instance().ObjectEntity<Design_Item>() 
-            //.Where.And().Equal(new Design_Item { Id = itemId });
 
             var item = DataFactory.Instance().DesignItem(itemId.Value);
             var name = this.AsyncDialog("Name", g =>
@@ -29,7 +27,7 @@ namespace UMC.Activities
 
 
             var webr = UMC.Data.WebResource.Instance();
-            var desc = this.AsyncDialog("Desc", g =>
+            var desc = UIDialog.AsyncDialog(this.Context, "Desc", g =>
             {
                 var size = this.AsyncDialog("Size", sg =>
                 {
@@ -50,14 +48,14 @@ namespace UMC.Activities
 
                 fm.AddFile(size, "Desc", webr.ResolveUrl(String.Format("{0}{1}/1/0.jpg!100", UMC.Data.WebResource.ImageResource, itemId)))
 
-                  .Command("Design", "Picture", new UMC.Web.WebMeta().Put("id", itemId).Put("seq", "1", "type", "jpg"));
+                  .Command("System", "Picture", new UMC.Web.WebMeta().Put("id", itemId).Put("seq", "1", "type", "jpg"));
 
 
                 return fm;
             });
-            var ite = new Design_Item
+            var ite = new PageItem
             {
-                Type = UIDesigner. StoreDesignTypeCustom,
+                Type = UIDesigner.StoreDesignTypeCustom,
                 ModifiedDate = DateTime.Now,
                 Id = itemId,
                 Seq = 0
@@ -70,20 +68,16 @@ namespace UMC.Activities
             }
             if (item == null)
             {
-                ite.design_id = UMC.Data.Utility.Guid("UISettings", true); 
+                ite.design_id = UMC.Data.Utility.Guid("UISettings", true);
+                ite.AppKey = this.Context.AppKey ?? Guid.Empty;
             }
             ite.Data = UMC.Data.JSON.Serialize(data);
 
-            //itemsEntity.Entities.IFF(e => e.Update(ite) == 0, e =>
-            //{
-            //    ite.design_id = UMC.Data.Utility.Guid("UISettings", true);
-            //    e.Insert(ite);
-            //});
             DataFactory.Instance().Put(ite);
 
             this.Context.Send(new UMC.Web.WebMeta().Put("type", "DesignItem")
                 .Put("Id", strId).Put("data", data)
-                .Put("name", name).Put("data", data)
+                .Put("name", name)
                 .Put("src", webr.ResolveUrl(String.Format("{1}{0}/1/0.jpg?{2}", ite.Id, UMC.Data.WebResource.ImageResource, this.TimeSpan(ite.ModifiedDate)))), true);
 
         }

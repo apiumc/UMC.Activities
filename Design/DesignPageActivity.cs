@@ -1,4 +1,4 @@
-
+﻿
 using System;
 using System.Collections;
 using System.Linq;
@@ -8,37 +8,32 @@ using UMC.Data;
 using UMC.Web;
 namespace UMC.Activities
 {
-    class DesignUIActivity : WebActivity
+    class DesignPageActivity : WebActivity
     {
         bool _isEditer;
-        public DesignUIActivity()
+        public DesignPageActivity()
         {
             this._isEditer = true;
         }
-        public DesignUIActivity(bool isediter)
+        public DesignPageActivity(bool isediter)
         {
             _isEditer = isediter;
 
         }
 
-        void Design(WebRequest request, Guid itemId)
+        void Design(Guid itemId)
         {
 
-            //var entity = Database.Instance().ObjectEntity<Design_Item>();
-            //entity.Where.And().Equal(new Design_Item { Id = itemId });
-
-
-            Design_Item item = DataFactory.Instance().DesignItem(itemId);// entity.Single();
+            PageItem item = DataFactory.Instance().DesignItem(itemId);
 
             if (item == null)
             {
 
-                var max = DataFactory.Instance().DesignItems(Guid.Empty, Guid.Empty).MAX(r => r.Seq ?? 0);
+                var max = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, Guid.Empty, Guid.Empty).MAX(r => r.Seq ?? 0);
 
-                //max.Seq = (max.Seq ?? 0) + 1;
-                item = new Design_Item { Seq = max + 1 };
+                item = new PageItem { Seq = max + 1 };
             }
-            Design_Item fitem = item;
+            PageItem fitem = item;
             WebMeta meta = this.AsyncDialog(g =>
             {
                 UIFormDialog from = new UIFormDialog();
@@ -48,10 +43,10 @@ namespace UMC.Activities
 
                 from.AddNumber("顺序", "Seq", fitem.Seq);
 
-                from.Submit("确认", request, "Design");
+                from.Submit("确认", "Design");
                 return from;
             }, "Setting");
-            Design_Item newItem = new Design_Item()
+            PageItem newItem = new PageItem()
             {
                 ItemName = meta.Get("ItemName"),
                 ModifiedDate = DateTime.Now,
@@ -59,11 +54,12 @@ namespace UMC.Activities
             };
             if (item.Id.HasValue == false)
             {
-
                 newItem.design_id = Guid.Empty;
                 newItem.for_id = Guid.Empty;
                 newItem.Id = Guid.NewGuid();
                 newItem.Type = UIDesigner.StoreDesignType;
+
+                newItem.AppKey = this.Context.AppKey ?? Guid.Empty;
                 DataFactory.Instance().Put(newItem);
             }
             else
@@ -78,17 +74,12 @@ namespace UMC.Activities
 
         void Delete(Guid uuid)
         {
-
-            //var entity = Database.Instance().ObjectEntity<Design_Item>();
-            //entity.Where.And().Equal(new Design_Item { design_id = uuid });
-            if (DataFactory.Instance().DesignItems(uuid).Length > 0)
+            if (DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, uuid).Length > 0)
             {
                 this.Prompt("设计页面有组件，先删除组件，再删除页面项");
             }
 
-
-            //entity.Where.Reset().And().Equal(new Design_Item { Id = uuid });
-            DataFactory.Instance().Delete(new Design_Item { Id = uuid });
+            DataFactory.Instance().Delete(new PageItem { Id = uuid });
             this.Context.Send("Design", true);
         }
 
@@ -109,14 +100,10 @@ namespace UMC.Activities
                     {
 
                         this.Context.Send(new UISectionBuilder(request.Model, request.Command, new WebMeta().Put("Id", designId))
-                                .RefreshEvent("Design", "image")
+                                .RefreshEvent("Design", "System.Picture")
                                 .Builder(), true);
                     }
-                    //var entity = Database.Instance().ObjectEntity<Design_Item>();
-                    //entity.Where.And().Equal(new Design_Item { design_id = Guid.Empty, for_id = Guid.Empty });
-                    //entity.Order.Asc(new Design_Item { Seq = 0 });
-
-                    Design_Item[] headers = DataFactory.Instance().DesignItems(Guid.Empty, Guid.Empty).OrderBy(r => r.Seq ?? 0).ToArray();//  entity.Query();
+                    PageItem[] headers = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, Guid.Empty, Guid.Empty).OrderBy(r => r.Seq ?? 0).ToArray();//  entity.Query();
 
                     UISection section = UISection.Create(new UITitle("UMC"));
 
@@ -136,7 +123,7 @@ namespace UMC.Activities
                             {
 
                                 List<WebMeta> items = new List<WebMeta>();
-                                foreach (Design_Item item in headers)
+                                foreach (PageItem item in headers)
                                 {
 
                                     items.Add(new UMC.Web.WebMeta().Put("text", item.ItemName).Put("search", new WebMeta().Put("Id", item.Id)));
@@ -155,13 +142,13 @@ namespace UMC.Activities
                             case 0:
                                 break;
                             default:
-                                new UIDesigner(true).Section(section, headers[0].Id.Value);
+                                new UIDesigner(true).Section(section, this.Context.AppKey ?? Guid.Empty, headers[0].Id.Value);
                                 break;
                         }
                     }
                     else
                     {
-                        new UIDesigner(true).Section(section, designId);
+                        new UIDesigner(true).Section(section, this.Context.AppKey ?? Guid.Empty, designId);
                     }
                     if (section.Length == 0)
                     {
@@ -215,10 +202,10 @@ namespace UMC.Activities
                 switch (type)
                 {
                     case "Edit":
-                        Design(request, designId);
+                        Design(designId);
                         break;
                     case "Append":
-                        Design(request, Guid.NewGuid());//.randomUUID());
+                        Design(Guid.NewGuid());
                         break;
                     case "Delete":
                         Delete(designId);
@@ -228,24 +215,17 @@ namespace UMC.Activities
                         {
                             List<WebMeta> tabs = new List<WebMeta>();
 
-                            //Database.Instance().ObjectEntity<Design_Item>()
-                            //        .Where.And().Equal(new Design_Item() { design_id = Guid.Empty, for_id = Guid.Empty })//(Utility.uuidEmpty).For_id(Utility.uuidEmpty))
 
-                            //        .Entities.Order.Asc(new Design_Item() { Seq = 0 })
-                            //        .Entities.Query
+                            UMC.Data.Utility.Each(DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, Guid.Empty, Guid.Empty).OrderBy(r => r.Seq ?? 0), dr =>
+                            {
 
+                                tabs.Add(new UMC.Web.WebMeta().Put("text", dr.ItemName).Put("search", new UMC.Web.WebMeta().Put("Id", dr.Id.ToString())).Put("cmd", "Home", "model", "UI"));
 
-                            UMC.Data.Utility.Each(DataFactory.Instance().DesignItems(Guid.Empty, Guid.Empty).OrderBy(r => r.Seq ?? 0), dr =>
-                                     {
-
-                                         tabs.Add(new UMC.Web.WebMeta().Put("text", dr.ItemName).Put("search", new UMC.Web.WebMeta().Put("Id", dr.Id.ToString())).Put("cmd", "Home", "model", "UI"));
-
-                                     });
+                            });
                             if (tabs.Count == 1)
                             {
                                 UISectionBuilder builder = new UISectionBuilder("UI", "Home", new WebMeta().Put("Id", tabs[0].GetMeta("search").Get("Id")));
-                                //                            builder.builder()
-                                this.Context.Send(builder.Builder(), true);//"Tab", new WebMeta().put("sections", tabs).put("text", "UMC界面设计"), true);
+                                this.Context.Send(builder.Builder(), true);
 
 
                             }
@@ -264,7 +244,8 @@ namespace UMC.Activities
 
                                 UIFormDialog fm = new UMC.Web.UIFormDialog();
                                 fm.Title = ("移动效果体验");
-                                fm.AddImage(new Uri(UMC.Data.Utility.QRUrl(Data.WebResource.Instance().WebDomain() + "Click/UI/Home/")));
+                                var url = new Uri(request.Url, "/UMC/UI/Home/");
+                                fm.AddImage(new Uri(UMC.Data.Utility.QRUrl(url.AbsoluteUri)));
 
 
                                 fm.AddPrompt("请用支持UMC协议的APP“扫一扫”。");
@@ -291,27 +272,21 @@ namespace UMC.Activities
 
                             break;
                         default:
-                            var item = DataFactory.Instance().DesignItems(Guid.Empty, Guid.Empty).FirstOrDefault(r => String.Equals(r.ItemName, Name, StringComparison.CurrentCultureIgnoreCase)) ?? new Design_Item() { Id = Utility.Guid(Name, true), ItemName = Name };
+                            var item = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, Guid.Empty, Guid.Empty).FirstOrDefault(r => String.Equals(r.ItemName, Name, StringComparison.CurrentCultureIgnoreCase)) ?? new PageItem() { Id = Utility.Guid(Name, true), ItemName = Name };
 
-                            //var item = Database.Instance().ObjectEntity<Design_Item>()
-                            //     .Where.And().Equal(new Design_Item { design_id = Guid.Empty, for_id = Guid.Empty, ItemName = Name })
-                            //     .Entities.Single() ?? new Design_Item() { Id = Utility.Guid(Name, true), ItemName = Name };
 
                             UIDesigner designer = new UIDesigner(false);
-                            response.Redirect(designer.Section(item.ItemName, item.Id.Value));
+                            response.Redirect(designer.Section(item.ItemName, this.Context.AppKey ?? Guid.Empty, item.Id.Value));
                             break;
                     }
-                    //var entity = Database.Instance().ObjectEntity<Design_Item>();
-                    //entity.Where.And().Equal(new Design_Item { design_id = Guid.Empty, for_id = Guid.Empty });
-                    //entity.Order.Asc(new Design_Item { Seq = 0 });
 
                     List<WebMeta> tabs = new List<WebMeta>();
 
-                    UMC.Data.Utility.Each(DataFactory.Instance().DesignItems(Guid.Empty, Guid.Empty).OrderBy(r => r.Seq ?? 0), dr =>
-                    {
-                        tabs.Add(new UMC.Web.WebMeta().Put("text", dr.ItemName).Put("search", new UMC.Web.WebMeta().Put("Id", dr.Id)).Put("cmd", "Home", "model", "UI"));
+                    UMC.Data.Utility.Each(DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, Guid.Empty, Guid.Empty).OrderBy(r => r.Seq ?? 0), dr =>
+                                    {
+                                        tabs.Add(new UMC.Web.WebMeta().Put("text", dr.ItemName).Put("search", new UMC.Web.WebMeta().Put("Id", dr.Id)).Put("cmd", "Home", "model", "UI"));
 
-                    });
+                                    });
 
                     var chash = new Hashtable();
                     UITitle title = new UITitle("UMC移动界面");
@@ -328,7 +303,7 @@ namespace UMC.Activities
                 else
                 {
                     UIDesigner designer = new UIDesigner(false);
-                    response.Redirect(designer.Section("", designId));
+                    response.Redirect(designer.Section("", this.Context.AppKey ?? Guid.Empty, designId));
 
                 }
             }

@@ -9,8 +9,8 @@ using UMC.Data;
 
 namespace UMC.Activities
 {
-    [Mapping("Settings", "Area", Auth = WebAuthType.All, Desc = "选择地址区域", Category = 1)]
-    class SettingsAreaActivity : WebActivity
+    [Mapping("Settings", "Area", Auth = WebAuthType.All, Desc = "选择省市区", Category = 1)]
+    public class SettingsAreaActivity : WebActivity
     {
 
         public override void ProcessActivity(WebRequest request, WebResponse response)

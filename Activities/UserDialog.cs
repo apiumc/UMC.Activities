@@ -1,10 +1,10 @@
-
+﻿
 using System;
 using System.Collections;
 
 namespace UMC.Activities
 {
-    public class UserDialog : UMC.Web.UIGridDialog
+    class UserDialog : UMC.Web.UIGridDialog
     {
         public UserDialog()
         {
@@ -13,8 +13,6 @@ namespace UMC.Activities
         }
         protected override Hashtable GetHeader()
         {
-
-
             var header = new Header("Id", 25);
             header.AddField("Username", "登录名");
             header.AddField("Alias", "别名");
@@ -37,7 +35,7 @@ namespace UMC.Activities
                 switch (sort)
                 {
                     case "Disabled":
-                        search.Flags = Security.UserFlags.Disabled;
+                        search.IsDisabled = true;
                         break;
                     case "Lock":
                         search.Flags = Security.UserFlags.Lock;
@@ -52,28 +50,32 @@ namespace UMC.Activities
             data.Columns.Add("Alias");
             data.Columns.Add("RegistrTime");
 
-            var Keyword = (paramsKey["Keyword"] as string ?? String.Empty);//.Split(',');
+            var Keyword = (paramsKey["Keyword"] as string ?? String.Empty);
             if (String.IsNullOrEmpty(Keyword) == false)
             {
                 search.Alias = Keyword;
                 search.Username = Keyword;
             }
-            int total = 0;
+            int next = 0;
 
 
-            UMC.Data.Utility.Each(Data.DataFactory.Instance().Search(search, out total, start, limit), dr =>
+            UMC.Data.Utility.Each(Data.DataFactory.Instance().Search(search, start, limit, out next), dr =>
             {
-
                 data.Rows.Add(dr.Id, dr.Username, dr.Alias, UMC.Data.Utility.GetDate(dr.RegistrTime));
 
             });
 
             var hash = new Hashtable();
             hash["data"] = data;
-            hash["total"] = total;
-            if (total == 0)
+            if (next < 0)
             {
                 hash["msg"] = "未有对应账户";
+            }
+            else
+            {
+                hash["start"] = next;
+                hash["total"] = next + 1;
+
             }
             return hash;
         }

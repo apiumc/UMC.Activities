@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -20,27 +20,19 @@ namespace UMC.Activities
         {
 
             var key = this.AsyncDialog("Key", g => this.DialogValue("Organize"));
-            var DepId = Utility.Guid(this.AsyncDialog("Dep", g =>
+            var ParentId = Utility.IntParse(this.AsyncDialog("ParentId", g =>
             {
-                var organizes = UMC.Data.DataFactory.Instance().Organizes(new User { Id = this.Context.Token.Id.Value });
-
+                var organizes = UMC.Data.DataFactory.Instance().Organizes(new User
+                {
+                    Id = this.Context.Token.UserId.Value
+                });
 
                 if (organizes.Length > 0)
                 {
-                    return this.DialogValue(organizes[0].Id.ToString());// dep.ID
-
+                    return this.DialogValue(organizes[0].Id.ToString());
                 }
-                return this.DialogValue(Guid.Empty.ToString());
-            })) ?? Guid.Empty;
-
-
-
-            var NDepId = Utility.Guid(this.AsyncDialog("NDep", g =>
-            {
-                return this.DialogValue(Guid.Empty.ToString());
-            })) ?? Guid.Empty;
-
-
+                return this.DialogValue("0");
+            }), 0);
 
             var OrganizeId = this.AsyncDialog("Organize", g =>
             {
@@ -55,19 +47,19 @@ namespace UMC.Activities
                 UISection ui;
 
                 UISection ui2;
-                if (DepId == Guid.Empty)
+                if (ParentId == 0)
                 {
-                    var uTitle = new UITitle("选择部门");
+                    var uTitle = new UITitle("选择组织");
                     ui = UISection.Create(uTitle);
                     ui2 = ui;
                 }
                 else
                 {
-                    var dep = UMC.Data.DataFactory.Instance().Organize(DepId);
+                    var dep = UMC.Data.DataFactory.Instance().Organize(ParentId);
 
                     var uTitle = new UITitle(dep.Caption);
                     ui = UISection.Create(uTitle);
-                    ui.AddCell('\uf112', "返回上级部门", "", new UIClick("Dep", dep.ParentId.ToString()) { Key = "Query" });
+                    ui.AddCell('\uf112', "返回上级组织", "", new UIClick("ParentId", dep.ParentId.ToString()) { Key = "Query" });
 
                     ui2 = ui.NewSection();
 
@@ -78,28 +70,25 @@ namespace UMC.Activities
                 int start = UMC.Data.Utility.IntParse(form["start"], 0);
                 var Keyword = (form["Keyword"] as string ?? String.Empty);
 
-                var deps = UMC.Data.DataFactory.Instance().Organizes(DepId);// new List<ORGDEPARTMENT>();
+                var deps = UMC.Data.DataFactory.Instance().Organizes(ParentId);
 
 
-                int ct = 0;
 
                 foreach (var dr in deps)
                 {
-                    if (dr.Id.Value != NDepId)
-                    {
-                        ct++;
-                        var data = new WebMeta().Put("text", dr.Caption).Put("Icon", "\uf0e8");//.Put("Sel", "选中").Put("Next", "选中此部门");
-                        var cell = UICell.Create("UI", data);
-                        ui2.Add(cell);
 
-                        data.Put("click", new UIClick(new WebMeta().Put("Dep", dr.Id)) { Key = "Query" });
-                        cell.Style.Name("text").Click(new UIClick(new WebMeta().Put("Key", key).Put("Organize", dr.Id).Put("Dep", "1")).Send(request.Model, request.Command)).Color(0x111);
-                    }
+                    var data = new WebMeta().Put("text", dr.Caption).Put("Icon", "\uf0e8");
+                    var cell = UICell.Create("UI", data);
+                    ui2.Add(cell);
+
+                    data.Put("click", new UIClick(new WebMeta().Put("ParentId", dr.Id)) { Key = "Query" });
+                    cell.Style.Name("text").Click(new UIClick(new WebMeta().Put("Key", key).Put("Organize", dr.Id).Put("Dep", "1")).Send(request.Model, request.Command)).Color(0x111);
+
 
                 }
-                if (ct == 0)
+                if (deps.Length == 0)
                 {
-                    if (DepId == Guid.Empty)
+                    if (ParentId == 0)
                     {
                         ui.Add("Desc", new UMC.Web.WebMeta().Put("desc", "未有组织架构").Put("icon", "\uf0e8"), new UMC.Web.WebMeta().Put("desc", "{icon}\n{desc}"),
                   new UIStyle().Align(1).Color(0xaaa).Padding(20, 20).BgColor(0xfff).Size(12).Name("icon", new UIStyle().Font("wdk").Size(60)));
@@ -107,7 +96,7 @@ namespace UMC.Activities
                     }
                     else
                     {
-                        return this.DialogValue(DepId.ToString());
+                        return this.DialogValue(ParentId.ToString());
                     }
                 }
 
@@ -117,7 +106,7 @@ namespace UMC.Activities
 
             });
             ;
-            var org = UMC.Data.DataFactory.Instance().Organize(new Guid(OrganizeId));
+            var org = UMC.Data.DataFactory.Instance().Organize(UMC.Data.Utility.IntParse(OrganizeId, 0));
 
             this.Context.Send(new UMC.Web.WebMeta().UIEvent(key, new ListItem()
             {

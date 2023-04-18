@@ -17,7 +17,7 @@ namespace UMC.Activities
         {
             if (context.Request.IsCashier)
             {
-                return "true".Equals(context.Token.Get("UIDesign"));//, "true");
+                return "true".Equals(context.Token.Get("UIDesign"));
 
             }
             return false;
@@ -31,7 +31,7 @@ namespace UMC.Activities
             List<Guid> ids = new List<Guid>();
             List<String> strIds = new List<string>();
 
-            String strs = this.AsyncDialog("Id", g => this.DialogValue("none"));//, true).Value;
+            String strs = this.AsyncDialog("Id", g => this.DialogValue("none"));
             if (strs.IndexOf(',') > -1)
             {
                 foreach (String s in strs.Split(','))
@@ -49,28 +49,20 @@ namespace UMC.Activities
 
             }
 
-            List<Guid> pids = new List<Guid>(); ;// new LinkedList<>();
+            List<Guid> pids = new List<Guid>();
 
-            List<Design_Item> items;
+            List<PageItem> items;
 
-            //var itemsEntity = Database.Instance().ObjectEntity<Design_Item>();
             if (ids.Count == 1)
             {
-                items = DataFactory.Instance().DesignItems(ids[0]).ToList();
-                //itemsEntity.Where.And().Equal(new Design_Item() { design_id = ids[0] });
-
+                items = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, ids[0], new Guid[0]).ToList();
             }
             else
             {
-                items = DataFactory.Instance().DesignItems(ids[0], ids.ToArray()).Where(r => r.Type == UIDesigner.StoreDesignTypeCustom).ToList();//[0]).ToList();
-
-                //itemsEntity.Where.And().In(new Design_Item() { design_id = ids[0] }, ids.ToArray())
-                //    .And().Equal(new Design_Item { Type = UIDesigner.StoreDesignTypeCustom });
+                items = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, ids[0], ids.ToArray()).Where(r => r.Type == UIDesigner.StoreDesignTypeCustom).ToList();//[0]).ToList();
 
 
             }
-            //itemsEntity.Order.Asc(new Design_Item { Seq = 0 }).Entities.Query(dr => items.Add(dr));
-
 
             List<WebMeta> lis = new List<WebMeta>();
 
@@ -79,10 +71,10 @@ namespace UMC.Activities
             {
                 String config = this.AsyncDialog("Config", g => this.DialogValue("none"));
 
-                for (int i = 0; i < strIds.Count; i++)// var b in items)
+                for (int i = 0; i < strIds.Count; i++)
                 {
                     Guid cid = ids[i];
-                    Design_Item item = items.Find(k => k.Id == cid);// Utility.find(items, g->g.Id.compareTo(cid) == 0);
+                    PageItem item = items.Find(k => k.Id == cid);
 
                     if (item != null)
                     {
@@ -128,16 +120,16 @@ namespace UMC.Activities
             {
 
                 items.RemoveAll(g =>
-              {
-                  switch (g.Type)
-                  {
-                      case UIDesigner.StoreDesignTypeCustom:
-                      case UIDesigner.StoreDesignTypeItem:
-                          return false;
-                  }
-                  return true;
-              });
-                foreach (Design_Item b in items)
+                {
+                    switch (g.Type)
+                    {
+                        case UIDesigner.StoreDesignTypeCustom:
+                        case UIDesigner.StoreDesignTypeItem:
+                            return false;
+                    }
+                    return true;
+                });
+                foreach (PageItem b in items)
                 {
                     WebMeta pms = JSON.Deserialize<WebMeta>(b.Data);
                     pms.Put("id", b.Id);

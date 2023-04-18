@@ -16,10 +16,8 @@ namespace UMC.Activities
         void SendMobileCode(string mobile)
         {
 
-            var user = this.Context.Token.Identity(); //UMC.Security.Identity.Current;
-
-            var req = this.Context.Request;
-
+            var user = this.Context.Token.Identity();
+             
             var hask = new Hashtable();
 
             var session = new UMC.Data.Session<Hashtable>(mobile);
@@ -46,10 +44,7 @@ namespace UMC.Activities
             }
             session.Commit(hask, user, this.Context.Request.UserHostAddress);
 
-
-            UMC.Data.Reflection.PropertyToDictionary(Data.DataFactory.Instance().User(user.Id.Value), hask);
-            //UMC.Data.Reflection.PropertyToDictionary(UMC.Data.Database.Instance().ObjectEntity<UMC.Data.Entities.User>()
-            //    .Where.And().Equal(new UMC.Data.Entities.User { Id = user.Id.Value }).Entities.Single(), hask);
+            UMC.Data.Utility.AppendDictionary(Data.DataFactory.Instance().User(user.Id.Value), hask);
 
             hask["DateTime"] = DateTime.Now;
 
@@ -60,7 +55,7 @@ namespace UMC.Activities
 
         void Remove()
         {
-            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); 
             var act = Account.Create(user.Id.Value);
 
             var a = act[Account.MOBILE_ACCOUNT_KEY];
@@ -73,7 +68,7 @@ namespace UMC.Activities
                     .Command("Account", "Mobile", new UMC.Web.WebMeta().Put("Mobile", a.Name).Put("Code", "Send"))
                     .Put("Start", "YES");
 
-                     fm.Submit("确认验证码", this.Context.Request, "Mobile");
+                     fm.Submit("确认验证码", $"{this.Context.Request.Model}.{this.Context.Request.Command}");
                      return fm;
                  });
             var session = new UMC.Data.Session<Hashtable>(a.Name);
@@ -83,7 +78,7 @@ namespace UMC.Activities
                 {
                     Account.Post(a.Name, a.user_id, Security.UserFlags.UnVerification, Account.MOBILE_ACCOUNT_KEY);
                     this.Prompt("手机解除绑定成功", false);
-                    this.Context.Send(new UMC.Web.WebMeta().Put("type", "Mobile"), true);
+                    this.Context.Send($"{this.Context.Request.Model}.{this.Context.Request.Command}", true);
                 }
             }
             this.Prompt("您输入的验证码错误");
@@ -105,7 +100,7 @@ namespace UMC.Activities
                 var fm = new Web.UIFormDialog() { Title = "手机绑定" };
                 fm.AddText("手机号码", "Mobile", acc != null ? acc.Name : "");
 
-                fm.Submit("下一步", request, "Mobile");
+                fm.Submit("下一步",   $"{request.Model}.{request.Command}");
                 return fm;
 
             });
@@ -122,7 +117,7 @@ namespace UMC.Activities
             }
 
 
-            var mobile = Data.DataFactory.Instance().Account(value, UMC.Security.Account.MOBILE_ACCOUNT_KEY);
+            var mobile = Data.DataFactory.Instance().Account(value);//, UMC.Security.Account.MOBILE_ACCOUNT_KEY);
 
             if (mobile != null && mobile.user_id.Value != user.Id.Value)
             {
@@ -139,7 +134,7 @@ namespace UMC.Activities
                  .Command("Account", "Mobile", new UMC.Web.WebMeta().Put("Mobile", value).Put("Code", "Send"))
                      .Put("Start", "YES");
 
-                 fm.Submit("确认验证码", request, "Mobile");
+                 fm.Submit("确认验证码", $"{request.Model}.{request.Command}");
                  return fm;
              });
             if (Code == "Send")
@@ -158,7 +153,7 @@ namespace UMC.Activities
 
                     Account.Post(value, user.Id.Value, Security.UserFlags.Normal, Account.MOBILE_ACCOUNT_KEY);
                     this.Prompt("手机号码绑定成功", false);
-                    this.Context.Send(new UMC.Web.WebMeta().Put("type", "Mobile"), true);
+                    this.Context.Send($"{request.Model}.{request.Command}", true);
                 }
             }
 

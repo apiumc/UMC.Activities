@@ -12,7 +12,7 @@ namespace UMC.Activities
     {
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = this.Context.Token.Identity(); //UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity(); 
             var form = request.SendValues ?? new UMC.Web.WebMeta();
 
             if (form.ContainsKey("limit"))
@@ -29,7 +29,7 @@ namespace UMC.Activities
                 ui.NewSection().Add(history).Header.Put("text", "历史搜索");
 
 
-                Data.Utility.Each(Data.DataFactory.Instance().SearchKeyword(Guid.Empty), dr => hot.Add(new UIEventText(dr.Keyword).Click(new UIClick(dr.Keyword) { Key = "SearchFor" })));
+                Data.Utility.Each(Data.DataFactory.Instance().Keyword(Guid.Empty), dr => hot.Add(new UIEventText(dr.Key).Click(new UIClick(dr.Key) { Key = "SearchFor" })));
 
 
                 response.Redirect(ui);
@@ -40,7 +40,7 @@ namespace UMC.Activities
 
                 var history = new List<UIEventText>();
 
-                Data.Utility.Each(Data.DataFactory.Instance().SearchKeyword(user.Id.Value), dr => history.Add(new UIEventText(dr.Keyword).Click(new UIClick(dr.Keyword) { Key = "SearchFor" })));
+                Data.Utility.Each(Data.DataFactory.Instance().Keyword(user.Id.Value), dr => history.Add(new UIEventText(dr.Key).Click(new UIClick(dr.Key) { Key = "SearchFor" })));
 
 
                 var hash = new System.Collections.Hashtable();
@@ -60,14 +60,14 @@ namespace UMC.Activities
                 {
                     if (String.IsNullOrEmpty(i) == false)
                     {
-                        var search = new SearchKeyword { Keyword = i, user_id = user.Id, Time = UMC.Data.Utility.TimeSpan() };
+                        var search = new Keyword { Key = i, user_id = user.Id, Time = UMC.Data.Utility.TimeSpan() };
 
                         Data.DataFactory.Instance().Put(search);
                     }
                 }
 
                 var history = new List<UIEventText>();
-                Data.Utility.Each(Data.DataFactory.Instance().SearchKeyword(user.Id.Value), dr => history.Add(new UIEventText(dr.Keyword).Click(new UIClick(dr.Keyword) { Key = "SearchFor" })));
+                Data.Utility.Each(Data.DataFactory.Instance().Keyword(user.Id.Value), dr => history.Add(new UIEventText(dr.Key).Click(new UIClick(dr.Key) { Key = "SearchFor" })));
                 var hash = new System.Collections.Hashtable();
                 hash["data"] = history;
                 response.Redirect(hash);

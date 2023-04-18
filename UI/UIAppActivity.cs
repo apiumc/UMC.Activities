@@ -53,7 +53,7 @@ namespace UMC.Activities
                         if (vindex > 0)
                         {
                             var v = request.UserAgent.Substring(request.UserAgent.IndexOf("V", vindex) + 1);
-                            var cfgs = Data.DataFactory.Instance().Configuration("Version");/// UMC.Data.ProviderConfiguration.GetProvider(Reflection.ConfigPath("Version.xml"));
+                            var cfgs = Reflection.Configuration("Version");/// UMC.Data.ProviderConfiguration.GetProvider(Reflection.ConfigPath("Version.xml"));
                             if (cfgs == null)
                             {
                                 this.Prompt("提示", "当前已经是最新版本");
@@ -127,7 +127,7 @@ namespace UMC.Activities
                             k.Options.Add("DOME架构", "demo");
                             return k;
                         });
-                        String stream = new Uri(String.Format("http://oss.365lu.cn/UserResources/{0}.json", ResetName)).WebRequest().Get().ReadAsString();
+                        String stream = new Uri(String.Format("https://res.apiumc.com/UserResources/{0}.json", ResetName)).WebRequest().Get().ReadAsString();
 
                         var appConfig2 = Data.JSON.Deserialize(stream) as Hashtable;
                         appConfig2["BgSrc"] = appConfig["BgSrc"];
@@ -150,7 +150,7 @@ namespace UMC.Activities
                               k.AddRadio("Bar加载类型", "Type")
                                         .Put("默认主页", "Home").Put("电商购物篮", "Cart").Put("电商品类页", "Category").Put("Tabs", "Tab配置页").Put("点击项", "Click")
                                         .Put("基本页", "Pager");
-                              k.Submit("确认提交", request, "AppConfig");
+                              k.Submit("确认提交", "AppConfig");
                               return k;
                           });
                         var footbar = new ArrayList(appConfig["footBar"] as Array);
@@ -183,7 +183,7 @@ namespace UMC.Activities
                         var Key = String.Format("UserResources/{0}/{1}/{2}", Utility.GetRoot(request.Url), config, AppName.Substring(AppName.LastIndexOf('/') + 1));
                         var webR = UMC.Data.WebResource.Instance();
                         webR.Transfer(new Uri(AppName), Key);
-                        appConfig[config] = new Uri(request.Url, webR.WebDomain() + Key).AbsoluteUri;
+                        appConfig[config] = new Uri(request.Url, "/" + Key).AbsoluteUri;
                     }
                     break;
                 case "AppName":
@@ -294,7 +294,7 @@ namespace UMC.Activities
                     break;
             }
 
-            Utility.Writer(file, Data.JSON.Serialize(appConfig), false);
+            Utility.Writer(file, Data.JSON.Serialize(appConfig));
             this.Context.Send("AppConfig", new WebMeta().Put("Config", appConfig), true);
         }
     }

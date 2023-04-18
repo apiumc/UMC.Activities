@@ -1,4 +1,4 @@
-
+﻿
 
 using System;
 using System.Collections;
@@ -9,8 +9,6 @@ namespace UMC.Activities
 {
     public class DesignClickActivity : WebActivity
     {
-
-
         protected UIClick Click(UIClick ui)
         {
             String type = this.AsyncDialog("Click", g =>
@@ -110,17 +108,13 @@ namespace UMC.Activities
             var sId = UMC.Data.Utility.Guid(ssid, true);
 
 
-            //var entity = Database.Instance().ObjectEntity<Design_Item>();
 
-            //entity.Where.And().Equal(new Design_Item() { Id = (sId) });
-
-
-            Design_Item baner = DataFactory.Instance().DesignItem(sId.Value);
+            PageItem baner = DataFactory.Instance().DesignItem(sId.Value);
 
             UIClick c = UMC.Data.JSON.Deserialize<UIClick>(baner.Click) ?? new UIClick();
 
 
-            DataFactory.Instance().Put(new Design_Item() { Click = UMC.Data.JSON.Serialize(this.Click(c)) , Id=sId.Value});
+            DataFactory.Instance().Put(new PageItem() { Click = UMC.Data.JSON.Serialize(this.Click(c)), Id = sId.Value });
             this.Context.Send("Click", false);
             this.Prompt("关联成功");
         }

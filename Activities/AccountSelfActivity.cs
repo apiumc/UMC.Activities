@@ -15,23 +15,10 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
             var Type = this.AsyncDialog("Type", "Client");
-            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
-            switch (Type)
+            var user = this.Context.Token.Identity();
+            if (user.IsAuthenticated == false)
             {
-                case "Client":
-                    if (user.IsAuthenticated == false)
-                    {
-                        response.Redirect(request.Model, "Login");
-                    }
-                    break;
-                case "Cashier":
-                    if (request.IsCashier == false)
-                    {
-                        response.Redirect("Settings", "Login");
-
-                    }
-
-                    break;
+                response.Redirect(request.Model, "Login");
             }
             var aUser = Data.DataFactory.Instance().User(user.Id.Value);
             var Model = this.AsyncDialog("Model", gkey =>
@@ -41,7 +28,7 @@ namespace UMC.Activities
                   if (form.ContainsKey("limit") == false)
                   {
                       this.Context.Send(new UISectionBuilder(request.Model, request.Command, request.Arguments)
-                              .RefreshEvent("UI.Setting", "image", "Email", "Mobile")
+                              .RefreshEvent("UI.Setting", "Account.Email", "Account.Mobile", "System.Picture")
                               .Builder(), true);
 
                   }
@@ -53,9 +40,9 @@ namespace UMC.Activities
                       default:
                           dic.Title = new UITitle("账户信息");
                           var imageTextView = new UMC.Web.UI.UIImageTextValue(Data.WebResource.Instance().ImageResolve(user.Id.Value, "1", 4), "头像", "");
-                          imageTextView.Style.Name("image-width", "100");
+                          imageTextView.Style.Name("image-width", "100").Name("image-radius", "10");
                           imageTextView.Click(new UIClick("id", user.Id.ToString(), "seq", "1")
-                          { Model = "Design", Command = "Picture" });
+                          { Model = "System", Command = "Picture" });
 
                           dic.Add(imageTextView);
 
@@ -76,7 +63,7 @@ namespace UMC.Activities
                           var color = 0xfff;
                           Discount.Gradient(color, color);
                           Discount.Click(new UIClick("id", user.Id.ToString(), "seq", "1")
-                          { Model = "Design", Command = "Picture" });
+                          { Model = "System", Command = "Picture" });
                           var header = new UIHeader();
 
                           var style = new UIStyle();
@@ -173,6 +160,11 @@ namespace UMC.Activities
                   response.Redirect(dic);
                   return this.DialogValue("none");
               });
+
+            if (aUser == null)
+            {
+                this.Prompt("第三方账户，不支持修改此内容");
+            }
             switch (Model)
             {
                 case "Alias":
@@ -192,7 +184,7 @@ namespace UMC.Activities
                         var selt = new Web.UIFormDialog();
                         selt.Title = "个性签名";
                         selt.AddTextarea("个性签名", "Signature", aUser == null ? "" : aUser.Signature);
-                        selt.Submit("确认提交", request, "UI.Setting");
+                        selt.Submit("确认提交", "UI.Setting");
                         return selt;
                     });
                     var Signature = reset["Signature"];

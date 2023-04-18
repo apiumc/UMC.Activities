@@ -1,4 +1,4 @@
-
+﻿
 using System;
 using UMC.Activities.Entities;
 using System.Linq;
@@ -12,21 +12,15 @@ namespace UMC.Activities
         {
             String group = request.Command;
 
-            //var entity = Database.Instance().ObjectEntity<Design_Config>();
-            //entity.Order.Asc(new Design_Config() { Sequence = 0 });
-
 
             Guid? vid = UMC.Data.Utility.Guid(this.AsyncDialog("Id", s =>
             {
-                //entity.Where.And().Equal(new Design_Config() { GroupBy = (group) });
-                ;
                 UIGridDialog rdoDig = UIGridDialog.Create(new UIGridDialog.Header("Id", 0)
                                 .PutField("Name", "标题").PutField("Value", "代码")
-                        , DataFactory.Instance().DesignConfig(group));
+                        , DataFactory.Instance().DesignConfig(this.Context.AppKey ?? Guid.Empty, group));
                 rdoDig.Menu("新建配置", request.Model, request.Command, "News");
                 rdoDig.RefreshEvent = "Settings";
-                rdoDig.IsPage = (true);// = true;
-                rdoDig.Title = ("数据配置");
+                rdoDig.Title = "数据配置";
 
 
                 return rdoDig;
@@ -35,26 +29,23 @@ namespace UMC.Activities
             WebMeta configs = this.AsyncDialog(s =>
             {
                 UIFormDialog fm = new UIFormDialog();
-                if (vid == null)
+                if (vid.HasValue == false)
                 {
-                    fm.Title = ("新增配置值");
+                    fm.Title = "新增配置值";
                 }
                 else
                 {
-                    fm.Title = ("修改配置值");
+                    fm.Title = "修改配置值";
                 }
-                //entity.Where.And().Equal(new Design_Config() { Id = (vid) });
-
-                Design_Config con = null;
-                if (vid != null)
+                PageConfig con = null;
+                if (vid.HasValue)
                 {
                     con = DataFactory.Instance().DesignConfig(vid.Value);
                 }
                 if (con == null)
                 {
-                    //   entity.Where.Reset().And().Equal(new Design_Config() { GroupBy = (group) });
-                    var max = DataFactory.Instance().DesignConfig(group).MAX(r => r.Sequence ?? 0);
-                    con = new Design_Config() { Sequence = max };
+                    var max = DataFactory.Instance().DesignConfig(this.Context.AppKey ?? Guid.Empty, group).MAX(r => r.Sequence ?? 0);
+                    con = new PageConfig() { Sequence = max };
                 }
 
                 fm.AddText("配置名称", "Name", con.Name);
@@ -62,24 +53,22 @@ namespace UMC.Activities
                 fm.AddNumber("显示顺序", "Sequence", con.Sequence);
                 return fm;
             }, "Config");
-            Design_Config cv = new Design_Config();
+            PageConfig cv = new PageConfig();
             UMC.Data.Reflection.SetProperty(cv, configs.GetDictionary());
             if (vid.HasValue == false)
             {
                 cv.GroupBy = group;
-                cv.Id = Guid.NewGuid();///.randomUUID();
-
+                cv.Id = Guid.NewGuid();
+                cv.AppKey = this.Context.AppKey ?? Guid.Empty;
                 DataFactory.Instance().Put(cv);
             }
             else
             {
                 cv.Id = vid;
-                //entity.Where.Reset().And().Equal(new Design_Config() { Id = (vid) });
-
                 if (cv.Sequence == -1)
                 {
-                    DataFactory.Instance().Delete(new Design_Config() { Id = (vid) });
-                    //  entity.Delete();
+                    DataFactory.Instance().Delete(new PageConfig() { Id = (vid) });
+
                 }
                 else
                 {

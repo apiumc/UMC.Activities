@@ -15,8 +15,6 @@ namespace UMC.Activities
         {
             var user = this.Context.Token.Identity();
 
-
-            var header = new UIHeader();
             var title = UITitle.Create();
             title.Title = "设置";
             var ui = UISection.Create(title);
@@ -39,7 +37,7 @@ namespace UMC.Activities
 
             if (user.IsAuthenticated)
             {
-                var cell = UICell.Create("UI", new UMC.Web.WebMeta().Put("text", "退出登录").Put("Icon", '\uf011').Put("click", new UIClick()
+                var cell = UICell.Create("UI", new WebMeta().Put("text", "退出登录").Put("Icon", '\uf011').Put("click", new UIClick()
                 {
                     Model = "Account",
                     Command = "Close"

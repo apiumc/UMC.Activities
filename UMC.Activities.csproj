@@ -1,37 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <Description></Description>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Description>UMC架构核心</Description>
+    <PackageId>UMC.Activities</PackageId>
+    <Version>1.0.4</Version>
+    <Authors>APIUMC</Authors>
+    <Company>小雨伞</Company>
+    <PackageDescription>UMC架构身份体系管理</PackageDescription>
+    <PackageProjectUrl>https://github.com/apiumc/UMC.Activities</PackageProjectUrl>
+    <PackageVersion>1.0.4</PackageVersion>
   </PropertyGroup>
-
   <ItemGroup>
-    <Compile Remove="Subject\**" />
-    <EmbeddedResource Remove="Subject\**" />
-    <None Remove="Subject\**" />
-    <Compile Remove="Activities\SettingsSelectUserActivity %28副本%29.cs" />
+    <None Remove="UMC.Data" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="Activities\AccountAccessActivity.cs" />
-    <Compile Remove="Activities\AccountLinkActivity.cs" />
-    <Compile Remove="Activities\SettingsLinkActivity.cs" />
-    <Compile Remove="Activities\SystemLogActivity.cs" />
-    <Compile Remove="Activities\SystemSetupActivity.cs" />
-    <Compile Remove="Activities\WebResource.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Resources\Location.csv" />
-    <None Remove="Resources\UMC.js" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\UMC.js" />
-    <EmbeddedResource Include="Resources\Location.csv" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\UMC.Data\UMC.Data.csproj" />
+    <ProjectReference Include="..\UMC\UMC.csproj" />
   </ItemGroup>
 </Project>

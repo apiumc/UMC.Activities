@@ -77,20 +77,14 @@ namespace UMC.Activities
                     dialog.AddPassword("密码", "Password", false);
                     dialog.AddPassword("确认密码", "NewPassword2", false).Put("placeholder", "再输入一次密码").Put("ForName", "Password");
                 }
-                dialog.Submit("确认注册", request, "User");
+                dialog.Submit("确认注册", "User");
                 return dialog;
 
             });
             if (user.ContainsKey("Mobile"))
             {
                 var mobile = user["Mobile"];
-                var account = Data.DataFactory.Instance().Account(mobile, UMC.Security.Account.MOBILE_ACCOUNT_KEY);
-                //Data.Database.Instance().ObjectEntity<UMC.Data.Entities.Account>()
-                //     .Where.And().Equal(new UMC.Data.Entities.Account
-                //     {
-                //         Name = mobile,
-                //         Type = UMC.Security.Account.MOBILE_ACCOUNT_KEY
-                //     }).Entities.Single();
+                var account = Data.DataFactory.Instance().Account(mobile);
                 if (account != null)
                 {
                     this.Prompt("此手机号码已经注册，你可直接登录");
@@ -134,7 +128,7 @@ namespace UMC.Activities
             {
                 this.Prompt("只支持手机号注册");
             }
-            if (Data.DataFactory.Instance().Account(username, ac.Type.Value) != null)
+            if (Data.DataFactory.Instance().Account(username) != null)
             {
                 switch (ac.Type.Value)
                 {
@@ -172,7 +166,7 @@ namespace UMC.Activities
                 }
                 var iden = uM.Identity(username);
 
-                this.Context.Token.Login(iden, request.IsApp ? "App" : "Client", true, request.UserHostAddress);
+                this.Context.Token.Login(iden).Commit(request.IsApp ? "App" : "Desktop", true, request.UserHostAddress, this.Context.Server);
 
                 if (String.IsNullOrEmpty(passwork) == false)
                 {

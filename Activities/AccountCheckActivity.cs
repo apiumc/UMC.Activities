@@ -1,4 +1,4 @@
-
+﻿
 
 
 using System;
@@ -9,80 +9,56 @@ namespace UMC.Activities
     public class AccountCheckActivity : WebActivity
     {
 
-
-
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = this.Context.Token.Identity(); //UMC.Security.Identity.Current;
-            switch (request.SendValue)
+            var user = this.Context.Token.Identity();
+            var checkValue = this.AsyncDialog("Key", "Check");
+            switch (checkValue)
             {
                 case "Mqtt":
-                    response.Redirect(UMC.Data.WebResource.Instance().Push(this.Context.Token.Id.Value));
+                    response.Redirect(UMC.Data.WebResource.Instance().Push(this.Context.Token.Device.Value));
                     break;
                 case "Session":
-                    var seesionKey = UMC.Data.Utility.Guid(this.Context.Token.Id.Value);
-                    UMC.Data.HotCache.Remove(new UMC.Data.Entities.Session { SessionKey = seesionKey });
-
+                    var seesionKey = UMC.Data.Utility.Guid(this.Context.Token.Device.Value);
                     var seesion = UMC.Data.DataFactory.Instance().Session(seesionKey);
 
                     if (seesion != null)
                     {
-                        var login = (UMC.Data.DataFactory.Instance().Configuration("account") ?? new ProviderConfiguration())["login"] ?? Provider.Create("name", "name");
+                        var login = Reflection.Configuration("account")["login"] ?? Provider.Create("name", "name");
                         var timeout = UMC.Data.Utility.IntParse(login.Attributes["timeout"], 3600);
 
 
-                        var Value = UMC.Data.JSON.Deserialize<UMC.Security.AccessToken>(seesion.Content);
+                        var Value = UMC.Data.JSON.Deserialize<UMC.Data.AccessToken>(seesion.Content);
                         user = Value.Identity();
                         UMC.Data.DataFactory.Instance().Delete(seesion);
-                        this.Context.Token.Login(user, timeout, request.IsApp ? "App" : "Desktop",true, request.UserHostAddress);
-                        this.Context.Send("User", true);
+                        var strQuery = request.UrlReferrer?.Query;
+                        if (String.IsNullOrEmpty(strQuery) == false)
+                        {
+                            var query = System.Web.HttpUtility.ParseQueryString(strQuery);
+                            var transfer = query["transfer"];
+                            if (String.IsNullOrEmpty(transfer) == false)
+                            {
+                                seesion.SessionKey = transfer;
+                                UMC.Data.DataFactory.Instance().Put(seesion);
+                            }
+                        }
+                        this.Context.Token.Login(user, timeout).Commit(request.IsApp ? "App" : "Desktop", true, request.UserHostAddress, this.Context.Server);
+                        this.Context.Send("User", new WebMeta("Alias", user.Alias).Put("Src", Data.WebResource.Instance().ImageResolve(user.Id.Value, "1", 5)), true);
+
                     }
                     else
                     {
 
                         if (request.IsCashier)
                         {
-                            this.Context.Send("User", true);
-
+                            this.Context.Send("User", new WebMeta("Alias", user.Alias).Put("Src", Data.WebResource.Instance().ImageResolve(user.Id.Value, "1", 5)), true);
                         }
                         else
                         {
-                            response.Redirect(new WebMeta().Put("Device", UMC.Data.Utility.Guid(this.Context.Token.Id.Value)));
+                            response.Redirect(new WebMeta().Put("Device", UMC.Data.Utility.Guid(this.Context.Token.Device.Value)));
                         }
                     }
                     return;
-                case "Info":
-                    var info = new System.Collections.Hashtable();
-                    if (user.IsAuthenticated)
-                    {
-                        info["Name"] = user.Name;
-                        info["Alias"] = user.Alias;
-                        info["Src"] = UMC.Data.WebResource.Instance().ImageResolve(user.Id.Value, "1", (object)4);// user.Alias;
-                    }
-                    info["IsCashier"] = request.IsCashier;
-                    info["IsMaster"] = request.IsMaster;
-                    info["TimeSpan"] = UMC.Data.Utility.TimeSpan();
-                    info["Device"] = UMC.Data.Utility.Guid(this.Context.Token.Id.Value);// UMC.Data.Utility.Guid(UMC.Security.AccessToken.Token.Value);
-                    if (String.IsNullOrEmpty(request.UserAgent) == false)
-                    {
-                        var ua = request.UserAgent.ToUpper();
-                        if (ua.Contains("WXWORK"))
-                        {
-                            info["IsCorp"] = true;
-                        }
-                        else if (ua.Contains("MICROMESSENGER"))
-                        {
-
-                            info["IsWeiXin"] = true;
-                        }
-                        else if (ua.Contains("DINGTALK"))
-                        {
-
-                            info["IsDingTalk"] = true;
-                        }
-                    }
-                    response.Redirect(info);
-                    break;
                 case "Login":
                     if (user.IsAuthenticated == false)
                     {
@@ -133,12 +109,53 @@ namespace UMC.Activities
                         }
                     }
                     return;
+                case "Check":
+                case "Event":
+                    break;
+                default:
+                case "Info":
+                    var info = new System.Collections.Hashtable();
+                    if (user.IsAuthenticated)
+                    {
+                        info["Name"] = user.Name;
+                        info["Alias"] = user.Alias;
+                        info["Src"] = UMC.Data.WebResource.Instance().ImageResolve(user.Id.Value, "1", (object)4);
+                    }
+                    if (String.Equals(checkValue, "Info") == false)
+                    {
+                        this.Context.Token.Put("SPM", checkValue).Commit(request.UserHostAddress, this.Context.Server);
+                    }
+                    info["IsCashier"] = request.IsCashier;
+                    info["IsMaster"] = request.IsMaster;
+                    info["TimeSpan"] = UMC.Data.Utility.TimeSpan();
+                    info["Device"] = UMC.Data.Utility.Guid(this.Context.Token.Device.Value);
+
+                    if (String.IsNullOrEmpty(request.UserAgent) == false)
+                    {
+                        var ua = request.UserAgent.ToUpper();
+                        if (ua.Contains("WXWORK"))
+                        {
+                            info["IsCorp"] = true;
+                        }
+                        else if (ua.Contains("MICROMESSENGER"))
+                        {
+
+                            info["IsWeiXin"] = true;
+                        }
+                        else if (ua.Contains("DINGTALK"))
+                        {
+
+                            info["IsDingTalk"] = true;
+                        }
+                    }
+                    response.Redirect(info);
+                    break;
 
             }
 
             if (user.IsAuthenticated == false)
             {
-                if (request.SendValue == "Event")
+                if (checkValue == "Event")
                 {
                     this.Context.Send(new UMC.Web.WebMeta().Put("type", "Login"), true);
                 }

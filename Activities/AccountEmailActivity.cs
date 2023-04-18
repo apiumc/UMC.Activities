@@ -15,17 +15,14 @@ namespace UMC.Activities
 
         void SendEmail(string email)
         {
-            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity();
 
             var uiattr = UMC.Data.Reflection.GetDataProvider("account", "Email");
 
-            //account.Items[Account.KEY_VERIFY_FIELD] = WebUtility.NumberCode(Guid.NewGuid().GetHashCode(), 6);// session.ToString();
-            //account.Items["Name"] = email;
-            //account.Commit();
 
             var hask = new Hashtable();
 
-            hask["Code"] = Utility.NumberCode(Guid.NewGuid().GetHashCode(), 6);// account.Items[Account.KEY_VERIFY_FIELD];// new Uri(this.Request.Url, url);
+            hask["Code"] = Utility.NumberCode(Guid.NewGuid().GetHashCode(), 6);
             hask["DateTime"] = DateTime.Now;
 
             var session = new UMC.Data.Session<Hashtable>(email);
@@ -38,7 +35,7 @@ namespace UMC.Activities
                 session.Commit(hask, user, this.Context.Request.UserHostAddress);
             }
 
-            UMC.Data.Reflection.PropertyToDictionary(Data.DataFactory.Instance().User(user.Id.Value), hask);
+            UMC.Data.Utility.AppendDictionary(Data.DataFactory.Instance().User(user.Id.Value), hask);
 
 
             var mail = new System.Net.Mail.MailMessage();
@@ -52,21 +49,21 @@ namespace UMC.Activities
 
         void Remove()
         {
-            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity();
             var act = Account.Create(user.Id.Value);
 
             var a = act[Account.EMAIL_ACCOUNT_KEY];
             var code = this.AsyncDialog("Remove", d =>
-                 {
+            {
 
-                     var fm = new Web.UIFormDialog() { Title = "解除验证" };
-                     fm.AddTextValue().Put("邮箱", a.Name);
-                     fm.AddVerify("验证码", "Code", "您邮箱收到的验证码")
-                         .Put("Command", "Email").Put("Model", "Account").Put("SendValue", new UMC.Web.WebMeta().Put("Email", a.Name).Put("Code", "Send")).Put("Start", "YES");
+                var fm = new Web.UIFormDialog() { Title = "解除验证" };
+                fm.AddTextValue().Put("邮箱", a.Name);
+                fm.AddVerify("验证码", "Code", "您邮箱收到的验证码")
+                    .Put("Command", "Email").Put("Model", "Account").Put("SendValue", new UMC.Web.WebMeta().Put("Email", a.Name).Put("Code", "Send")).Put("Start", "YES");
 
-                     fm.Submit("确认验证码", this.Context.Request, "Email");
-                     return fm;
-                 });
+                fm.Submit("确认验证码", $"{this.Context.Request.Model}.{this.Context.Request.Command}");
+                return fm;
+            });
             var session = new UMC.Data.Session<Hashtable>(a.Name);
             if (session.Value != null)
             {
@@ -75,7 +72,7 @@ namespace UMC.Activities
 
                     Account.Post(a.Name, a.user_id, Security.UserFlags.UnVerification, Account.EMAIL_ACCOUNT_KEY);
                     this.Prompt("邮箱解除绑定成功", false);
-                    this.Context.Send(new UMC.Web.WebMeta().Put("type", "Email"), true);
+                    this.Context.Send($"{this.Context.Request.Model}.{this.Context.Request.Command}", true);
                 }
             }
             this.Prompt("您输入的验证码错误");
@@ -83,7 +80,7 @@ namespace UMC.Activities
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
 
-            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity();
             var act = Account.Create(user.Id.Value);
 
 
@@ -97,7 +94,7 @@ namespace UMC.Activities
 
 
                 var t = new Web.UITextDialog() { Title = "邮箱绑定", DefaultValue = acc != null ? acc.Name : "" };
-                t.Config["submit"] = "下一步";
+                t.SubmitText = "下一步";
                 return t;
 
             });
@@ -115,8 +112,7 @@ namespace UMC.Activities
             }
 
 
-            var email = Data.DataFactory.Instance().Account(value, Account.EMAIL_ACCOUNT_KEY);// Data.Database.Instance().ObjectEntity<UMC.Data.Entities.Account>();
-            //entity.Where.And().Equal(new UMC.Data.Entities.Account { Name = value, Type = Account.EMAIL_ACCOUNT_KEY }).And().Unequal(new Data.Entities.Account { user_id = user.Id });
+            var email = Data.DataFactory.Instance().Account(value);
             if (email != null && email.user_id.Value != user.Id.Value)
             {
                 this.Prompt("此邮箱已存在绑定");
@@ -131,7 +127,7 @@ namespace UMC.Activities
                fm.AddVerify("验证码", "Code", "您邮箱收到的验证码")
                    .Put("Command", "Email").Put("Model", "Account").Put("SendValue", new UMC.Web.WebMeta().Put("Email", value).Put("Code", "Send")).Put("Start", "YES");
 
-               fm.Submit("确认验证码", request, "Email");
+               fm.Submit("确认验证码", $"{this.Context.Request.Model}.{this.Context.Request.Command}");
                return fm;
            });
             if (Code == "Send")
@@ -148,7 +144,7 @@ namespace UMC.Activities
 
                     Account.Post(value, user.Id.Value, Security.UserFlags.Normal, Account.EMAIL_ACCOUNT_KEY);
                     this.Prompt("邮箱绑定成功", false);
-                    this.Context.Send("Email", true);
+                    this.Context.Send($"{this.Context.Request.Model}.{this.Context.Request.Command}", true);
                 }
             }
 

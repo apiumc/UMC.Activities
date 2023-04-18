@@ -13,7 +13,7 @@ namespace UMC.Activities
         bool _editer;
         public override void ProcessActivity(WebRequest request, WebResponse response)
         {
-            var user = this.Context.Token.Identity(); // UMC.Security.Identity.Current;
+            var user = this.Context.Token.Identity();
             this._editer = request.IsCashier;
 
             var designId = UMC.Data.Utility.Guid(this.AsyncDialog("Id", g => new Web.UITextDialog()), true).Value;
@@ -21,40 +21,46 @@ namespace UMC.Activities
             {
                 var builder2 = new UIDataSource(request.Model, request.Command, new UMC.Web.WebMeta().Put("Id", designId), "CMSImage");
 
-               
 
-                var item = DataFactory.Instance().DesignItems(designId, Guid.Empty).FirstOrDefault(r => r.Type == UIDesigner.StoreDesignTypeBanners);
+
+                var item = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, designId, Guid.Empty).FirstOrDefault(r => r.Type == UIDesigner.StoreDesignTypeBanners);
                 if (item == null)
                 {
-                    item = new Design_Item { Id = Guid.NewGuid(), Type = UIDesigner.StoreDesignTypeBanners, for_id = Guid.Empty, design_id = designId };
+                    item = new PageItem
+                    {
+                        Id = Guid.NewGuid(),
+                        Type = UIDesigner.StoreDesignTypeBanners,
+                        for_id = Guid.Empty,
+                        design_id = designId,
+                        AppKey = this.Context.AppKey ?? Guid.Empty
+                    };
                     DataFactory.Instance().Put(item);
                 }
 
-                this.Context.Send(new UMC.Web.WebMeta().Put("type", "DataSource").Put("title", "广告图").Put("menu", new object[] { new UIClick(new UMC.Web.WebMeta().Put("Id", item.Id.ToString(), "Type", "Banners")) { Command = "Design", Model = "Item", Text = "新建" } }).Put("DataSource", new object[] { builder2 }).Put("model", "Cells").Put("RefreshEvent", "Design"), true);
+                this.Context.Send(new UMC.Web.WebMeta().Put("type", "DataSource").Put("title", "广告图").Put("menu", new object[] { new UIClick(new UMC.Web.WebMeta().Put("Id", item.Id.ToString(), "Type", "Banners")) { Command = "Item", Model = "Design", Text = "新建" } }).Put("DataSource", new object[] { builder2 }).Put("model", "Cells").Put("RefreshEvent", "Design"), true);
 
 
             }
 
 
 
-            var items = DataFactory.Instance().DesignItems(designId).ToList();
+            var items = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, designId, new Guid[0]).ToList();
 
-
-            //var itemEntity = Database.Instance().ObjectEntity<Design_Item>()
-            //       .Where.And().Equal(new Design_Item { design_id = designId }).Entities;
-            //itemEntity.Order.Asc(new Design_Item { Seq = 0 }).Entities.Query(dr =>
-            //{
-
-            //    items.Add(dr);
-            //});
             if (items.Count == 0 && this._editer)
             {
-                items.Add(new Design_Item { Id = Guid.NewGuid(), Type = UIDesigner.StoreDesignTypeBanners, for_id = Guid.Empty, design_id = designId });
-                //itemEntity.Insert(items.ToArray());
+                items.Add(new PageItem
+                {
+                    Id = Guid.NewGuid(),
+                    Type = UIDesigner.StoreDesignTypeBanners,
+                    for_id = Guid.Empty,
+                    design_id = designId,
+                    AppKey = this.Context.AppKey ?? Guid.Empty
+                });
+
                 DataFactory.Instance().Put(items[0]);
             }
             var groups = items.FindAll(g => g.for_id == Guid.Empty);
-            var parent = groups.Find(g => g.Type == UIDesigner.StoreDesignTypeBanners) ?? new Design_Item() { Id = Guid.NewGuid() };
+            var parent = groups.Find(g => g.Type == UIDesigner.StoreDesignTypeBanners) ?? new PageItem() { Id = Guid.NewGuid() };
 
             var list = new List<Object>();
 

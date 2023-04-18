@@ -1,9 +1,11 @@
-
+﻿
 
 using System;
+using UMC.Data;
+
 namespace UMC.Activities.Entities
 {
-    public class Design_Item
+    public partial class PageItem : Record
     {
 
         public Guid? Id
@@ -69,7 +71,10 @@ namespace UMC.Activities.Entities
         {
             get; set;
         }
-
+        public Guid? AppKey
+        {
+            get; set;
+        }
 
     }
 }

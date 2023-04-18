@@ -5,24 +5,14 @@ namespace UMC.Activities
 {
 
     [Mapping("Design", Auth = WebAuthType.All, Desc = "UI设计")]
-    class DesignFlow : WebFlow
+    public class DesignFlow : WebFlow
     {
         public override WebActivity GetFirstActivity()
         {
             switch (this.Context.Request.Command)
             {
-                case "DesignKey":
-                    return new DesignKeyItemActivity();
-                case "WebResource":
-                    return new DesignWebResourcActivity();
-                case "Link":
-                    return new DesignLinkActivity();
-                case "Cell":
-                    return new DesignCellActivity();
-                case "Image":
-                    return new DesignImageActivity();
-                case "Picture":
-                    return new DesignPictureActivity();
+                case "ItemKey":
+                    return new DesignItemKeyActivity();
                 case "Item":
                     return new DesignItemActivity();
                 case "Click":
@@ -34,7 +24,9 @@ namespace UMC.Activities
                 case "Banner":
                     return new DesignBannerActivity();
                 case "Page":
-                    return new DesignUIActivity();
+                    return new DesignPageActivity();
+                case "View":
+                    return new DesignPageActivity(false);
                 default:
                     if (this.Context.Request.Command.StartsWith("UI"))
                     {

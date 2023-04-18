@@ -1,4 +1,4 @@
-
+﻿
 
 using System;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace UMC.Activities
 
     class DesignItemActivity : WebActivity
     {
-        void Seq(WebRequest request, WebResponse response, Design_Item item)
+        void Seq(WebRequest request, WebResponse response, PageItem item)
         {
             //var entity = Database.Instance().ObjectEntity<Design_Item>();
             //entity.Where.And().Equal(new Design_Item() { Id = (item.Id) });
@@ -26,7 +26,13 @@ namespace UMC.Activities
             }, "Setting");
 
 
-            DataFactory.Instance().Put(new Design_Item() { Id = item.Id.Value, ModifiedDate = DateTime.Now, Seq = Utility.IntParse(meta.Get("Seq"), 0) });
+            DataFactory.Instance().Put(new PageItem()
+            {
+                Id = item.Id.Value,
+                ModifiedDate = DateTime.Now,
+                Seq = Utility.IntParse(meta.Get("Seq"), 0),
+                AppKey = this.Context.AppKey ?? Guid.Empty
+            });
 
 
         }
@@ -34,21 +40,19 @@ namespace UMC.Activities
         void Caption(WebRequest request, WebResponse response, Guid sid, Guid forid)
         {
             String Name = this.AsyncDialog("Name", g => new UITextDialog() { Title = ("新建栏位") });
-            Design_Item item2 = new Design_Item()
+            PageItem item2 = new PageItem()
             {
                 Id = Guid.NewGuid(),
                 design_id = sid,
                 for_id = forid,
                 ModifiedDate = DateTime.Now,
                 Type = UIDesigner.StoreDesignTypeCaption,
+
+                AppKey = this.Context.AppKey ?? Guid.Empty,
                 ItemName = Name
             };
-            //var entity = Database.Instance().ObjectEntity<Design_Item>();
 
-            //Design_Item max = entity
-            //        .Where.And().Equal(new Design_Item() { design_id = (sid) })
-            //        .Entities.MAX(new Design_Item() { Seq = 0 });//.Seq+1;
-            item2.Seq = DataFactory.Instance().DesignItems(sid).MAX(r => r.Seq ?? 0) + 1;
+            item2.Seq = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, sid).MAX(r => r.Seq ?? 0) + 1;
 
 
             DataFactory.Instance().Put(item2);
@@ -61,31 +65,32 @@ namespace UMC.Activities
             //var entity = Database.Instance().ObjectEntity<Design_Item>();
 
             //entity.Where.And().Equal(new Design_Item() { Id = itemId });
-            Design_Item item = DataFactory.Instance().DesignItem(itemId);
+            PageItem item = DataFactory.Instance().DesignItem(itemId);
 
             var webr = UMC.Data.WebResource.Instance();
 
             WebMeta meta = this.AsyncDialog(g =>
             {
-                Design_Item finalItem = item;
+                PageItem finalItem = item;
                 switch (item.Type ?? 0)
                 {
                     case UIDesigner.StoreDesignTypeItem:
                         break;
                     case UIDesigner.StoreDesignTypeIcons:
-                        Design_Item item2 = new Design_Item()
+                        PageItem item2 = new PageItem()
                         {
                             Id = Guid.NewGuid(),
                             design_id = item.design_id,
                             for_id = item.Id,
                             ModifiedDate = DateTime.Now,
-                            Type = UIDesigner.StoreDesignTypeItem
+                            Type = UIDesigner.StoreDesignTypeItem,
+                            AppKey = this.Context.AppKey ?? Guid.Empty,
                         };
 
                         //  Design_Item max = entity
                         //.Where.And().Equal(new Design_Item() { design_id = item.design_id, for_id = item.Id })
                         //.Entities.MAX(new Design_Item() { Seq = 0 });//.Seq+1;
-                        item2.Seq = DataFactory.Instance().DesignItems(item.design_id.Value, item.Id.Value).MAX(r => r.Seq ?? 0) + 1;
+                        item2.Seq = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, item.design_id.Value, item.Id.Value).MAX(r => r.Seq ?? 0) + 1;
 
                         DataFactory.Instance().Put(item2);
 
@@ -104,18 +109,25 @@ namespace UMC.Activities
                 from.Title = ("图标");
 
                 from.AddFile("图片", "_Image", webr.ImageResolve(finalItem.Id.Value, "1", 4))
-                        .Command("Design", "Picture", new UMC.Web.WebMeta().Put("id", finalItem.Id).Put("seq", "1"));
+                        .Command("System", "Picture", new UMC.Web.WebMeta().Put("id", finalItem.Id).Put("seq", "1"));
                 from.AddText("标题", "ItemName", finalItem.ItemName);
 
                 from.AddNumber("顺序", "Seq", finalItem.Seq);
 
-                from.Submit("确认", request, "Design");
+                from.Submit("确认", "Design");
                 return from;
             }, "Setting");
 
 
 
-            DataFactory.Instance().Put(new Design_Item() { Id = item.Id, ItemName = meta.Get("ItemName"), ModifiedDate = DateTime.Now, Seq = Utility.IntParse(meta.Get("Seq"), 0) });
+            DataFactory.Instance().Put(new PageItem()
+            {
+                Id = item.Id,
+                ItemName = meta.Get("ItemName"),
+                ModifiedDate = DateTime.Now,
+                Seq = Utility.IntParse(meta.Get("Seq"), 0),
+                AppKey = this.Context.AppKey ?? Guid.Empty
+            });
 
 
         }
@@ -127,18 +139,18 @@ namespace UMC.Activities
             //var entity = Database.Instance().ObjectEntity<Design_Item>();
             //entity.Where.Reset().And().Equal(new Design_Item() { Id = itemId });
 
-            Design_Item item = DataFactory.Instance().DesignItem(itemId);
+            PageItem item = DataFactory.Instance().DesignItem(itemId);
 
 
             WebMeta meta = this.AsyncDialog(g =>
             {
-                Design_Item finalItem = item;
+                PageItem finalItem = item;
                 switch (item.Type)
                 {
                     case UIDesigner.StoreDesignTypeItem:
                         break;
                     case UIDesigner.StoreDesignTypeItems:
-                        var items = DataFactory.Instance().DesignItems(item.design_id.Value, item.Id.Value);
+                        var items = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, item.design_id.Value, item.Id.Value);
                         //int count = entity.Where.Reset()
                         //        .And().Equal(new Design_Item() { for_id = itemId })
                         //        .Entities.Count();
@@ -147,13 +159,14 @@ namespace UMC.Activities
                             this.Prompt("分列栏，只能添加4列");
                         }
 
-                        Design_Item item2 = new Design_Item()
+                        PageItem item2 = new PageItem()
                         {
                             Id = Guid.NewGuid(),
                             design_id = item.design_id,
                             for_id = item.Id,
                             ModifiedDate = DateTime.Now,
-                            Type = UIDesigner.StoreDesignTypeItem
+                            Type = UIDesigner.StoreDesignTypeItem,
+                            AppKey = this.Context.AppKey ?? Guid.Empty
                         };
 
                         //  Design_Item max = entity
@@ -179,7 +192,7 @@ namespace UMC.Activities
                 UIFormDialog from = new UIFormDialog();
                 from.Title = ("图标");
                 from.AddFile("图片", "_Image", webr.ImageResolve(finalItem.Id.Value, "1", 4))
-                        .Command("Design", "Picture", new UMC.Web.WebMeta().Put("id", finalItem.Id).Put("seq", "1"));
+                        .Command("System", "Picture", new UMC.Web.WebMeta().Put("id", finalItem.Id).Put("seq", "1"));
                 from.AddText("标题", "title", finalItem.ItemName);
                 from.AddText("描述", "desc", finalItem.ItemDesc);
                 from.Add("Color", "startColor", "标题开始色", data.Get("startColor"));
@@ -187,18 +200,19 @@ namespace UMC.Activities
                 from.AddNumber("顺序", "Seq", finalItem.Seq);
                 // from.submit("确认", request.model(), request.cmd(), new UMC.Web.WebMeta().put("Id", finalItem.Id).put("Type", "Edit"));
 
-                from.Submit("确认", request, "Design");
+                from.Submit("确认", "Design");
                 return from;
             }, "Setting");
 
-            DataFactory.Instance().Put(new Design_Item()
+            DataFactory.Instance().Put(new PageItem()
             {
                 Id = item.Id,
                 ItemName = meta.Get("title"),
                 ItemDesc = meta.Get("desc"),
                 Data = UMC.Data.JSON.Serialize(meta),
                 ModifiedDate = DateTime.Now,
-                Seq = Utility.IntParse(meta.Get("Seq"), 0)
+                Seq = Utility.IntParse(meta.Get("Seq"), 0),
+                AppKey = this.Context.AppKey ?? Guid.Empty,
             });
 
             //entity.Where.reset().And().Equal(new Design_Item().Id(item.Id));
@@ -218,7 +232,7 @@ namespace UMC.Activities
             //var entity = Database.Instance().ObjectEntity<Design_Item>();
             //entity.Where.Reset().And().Equal(new Design_Item() { Id = itemId });
 
-            Design_Item item = DataFactory.Instance().DesignItem(itemId);
+            PageItem item = DataFactory.Instance().DesignItem(itemId);
 
 
             WebMeta meta = this.AsyncDialog(g =>
@@ -229,7 +243,7 @@ namespace UMC.Activities
                     case UIDesigner.StoreDesignTypeItem:
                         //Design_Item parent = entity.Where.Reset().And().Equal(new Design_Item() { Id = item.for_id }).Entities.Single();
 
-                        Design_Item parent = DataFactory.Instance().DesignItem(item.for_id.Value);
+                        PageItem parent = DataFactory.Instance().DesignItem(item.for_id.Value);
 
                         config = UMC.Data.JSON.Deserialize<WebMeta>(parent.Data) ?? new UMC.Web.WebMeta();
 
@@ -238,16 +252,17 @@ namespace UMC.Activities
                     case UIDesigner.StoreDesignTypeTitleDesc:
                         config = UMC.Data.JSON.Deserialize<WebMeta>(item.Data) ?? new UMC.Web.WebMeta();
 
-                        Design_Item item2 = new Design_Item()
+                        PageItem item2 = new PageItem()
                         {
                             Id = Guid.NewGuid(),
                             design_id = item.design_id,
                             for_id = item.Id,
                             ModifiedDate = DateTime.Now,
-                            Type = UIDesigner.StoreDesignTypeItem
+                            Type = UIDesigner.StoreDesignTypeItem,
+                            AppKey = this.Context.AppKey ?? Guid.Empty
                         };
 
-                        var max = DataFactory.Instance().DesignItems(item.design_id.Value, item.Id.Value).MAX(r => r.Seq ?? 0);
+                        var max = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, item.design_id.Value, item.Id.Value).MAX(r => r.Seq ?? 0);
                         item2.Seq = max + 1;
 
                         DataFactory.Instance().Put(item2);
@@ -276,7 +291,7 @@ namespace UMC.Activities
 
                 from.AddFile(String.Format("{0}比例图片", total == "1" ? "100:55" : "1:1"), "_Image",
                                 webr.ImageResolve(item.Id.Value, "1", 4))
-                                .Command("Design", "Picture", new UMC.Web.WebMeta().Put("id", item.Id).Put("seq", "1"));
+                                .Command("System", "Picture", new UMC.Web.WebMeta().Put("id", item.Id).Put("seq", "1"));
                 String hide = config.Get("Hide") ?? "";
                 if (hide.IndexOf("HideTitle") == -1)
                     from.AddText("图文标题", "title", item.ItemName);
@@ -288,12 +303,12 @@ namespace UMC.Activities
                     from.AddText("右角说明", "right", data.Get("right"));
                 from.AddNumber("顺序", "Seq", item.Seq);
 
-                from.Submit("确认", request, "Design");
+                from.Submit("确认", "Design");
                 return from;
             }, "Setting");
 
             //entity.Where.Reset().And().Equal(new Design_Item() { Id = item.Id });
-            DataFactory.Instance().Put(new Design_Item()
+            DataFactory.Instance().Put(new PageItem()
             {
                 Id = item.Id,
                 ItemName = meta.Get("title"),
@@ -322,7 +337,7 @@ namespace UMC.Activities
             //var entity = Database.Instance().ObjectEntity<Design_Item>();
             //entity.Where.Reset().And().Equal(new Design_Item() { Id = itemId });
 
-            Design_Item item = DataFactory.Instance().DesignItem(itemId);// entity.Single();
+            PageItem item = DataFactory.Instance().DesignItem(itemId);// entity.Single();
             switch (item.Type ?? 0)
             {
                 case UIDesigner.StoreDesignTypeItem:
@@ -330,7 +345,7 @@ namespace UMC.Activities
                     item = DataFactory.Instance().DesignItem(item.for_id.Value);
                     break;
             }
-            Design_Item finalItem = item;
+            PageItem finalItem = item;
             WebMeta meta = this.AsyncDialog(g =>
                     {
 
@@ -411,7 +426,7 @@ namespace UMC.Activities
                                 this.Prompt("参数错误");
                                 break;
                         }
-                        from.Submit("确认", request, "Design");
+                        from.Submit("确认", "Design");
                         return from;
                     }, "Setting");
             String show = meta.Get("Show");
@@ -420,7 +435,7 @@ namespace UMC.Activities
                 meta.Put("Show", show.Contains("Hide") ? "Hide" : "Show");
             }
             //entity.Where.Reset().And().Equal(new Design_Item() { Id = item.Id });
-            DataFactory.Instance().Put(new Design_Item
+            DataFactory.Instance().Put(new PageItem
             {
                 Id = item.Id,
                 ItemName = meta["ItemName"],
@@ -440,7 +455,7 @@ namespace UMC.Activities
             //var entity = Database.Instance().ObjectEntity<Design_Item>();
             //entity.Where.Reset().And().Equal(new Design_Item() { Id = itemId });
 
-            Design_Item item = DataFactory.Instance().DesignItem(itemId);
+            PageItem item = DataFactory.Instance().DesignItem(itemId);
 
             WebMeta meta = this.AsyncDialog(g =>
                     {
@@ -450,21 +465,17 @@ namespace UMC.Activities
                                 break;
                             case UIDesigner.StoreDesignTypeBanners:
 
-                                Design_Item item2 = new Design_Item()
+                                PageItem item2 = new PageItem()
                                 {
                                     Id = Guid.NewGuid(),
                                     design_id = item.design_id,
                                     for_id = item.Id,
                                     ModifiedDate = DateTime.Now,
-                                    Type = UIDesigner.StoreDesignTypeItem
+                                    Type = UIDesigner.StoreDesignTypeItem,
+                                    AppKey = this.Context.AppKey ?? Guid.Empty
                                 };
 
-                                //  Design_Item max = entity
-                                //.Where.And().Equal(new Design_Item() { design_id = item.design_id, for_id = item.Id })
-                                //.Entities.MAX(new Design_Item() { Seq = 0 });//.Seq+1;
-                                //  item2.Seq = (max.Seq ?? 0) + 1;
-
-                                var max = DataFactory.Instance().DesignItems(item.design_id.Value, item.Id.Value).MAX(r => r.Seq ?? 0);
+                                var max = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, item.design_id.Value, item.Id.Value).MAX(r => r.Seq ?? 0);
                                 item2.Seq = max + 1;
                                 DataFactory.Instance().Put(item2);
 
@@ -492,16 +503,16 @@ namespace UMC.Activities
                             size = String.Format("参考尺寸:{0}", size);
                         }
                         from.AddFile(size, "_Image", webr.ResolveUrl(String.Format("{0}{1}/1/0.jpg!100", UMC.Data.WebResource.ImageResource, item.Id)))
-                        .Command("Design", "Picture", new UMC.Web.WebMeta().Put("id", item.Id).Put("seq", "1"));
+                        .Command("System", "Picture", new UMC.Web.WebMeta().Put("id", item.Id).Put("seq", "1"));
 
                         from.AddNumber("展示顺序", "Seq", item.Seq);
-                        from.Submit("确认", request, "Design");
+                        from.Submit("确认", "Design");
                         return from;
                     }, "Setting");
 
 
             //entity.Where.Reset().And().Equal(new Design_Item() { Id = item.Id });
-            DataFactory.Instance().Put(new Design_Item { Id = item.Id, Data = UMC.Data.JSON.Serialize(meta), ModifiedDate = DateTime.Now });
+            DataFactory.Instance().Put(new PageItem { Id = item.Id, Data = UMC.Data.JSON.Serialize(meta), ModifiedDate = DateTime.Now });
 
 
         }
@@ -515,17 +526,10 @@ namespace UMC.Activities
 
 
             UMC.Data.WebResource webr = UMC.Data.WebResource.Instance();
-
-            // var entity = Database.Instance().ObjectEntity<Design_Item>();
-            //entity.Where.Reset().And().Equal(new Design_Item() { Id = itemId });
-
-            Design_Item item = null;//entity.single();
+            PageItem item = null;//entity.single();
 
             if (sId.HasValue)
             {
-                //entity.Where.Reset().And().Equal(new Design_Item() { Id = sId });
-
-
                 item = DataFactory.Instance().DesignItem(sId.Value);
 
             }
@@ -533,7 +537,7 @@ namespace UMC.Activities
             if (item != null && item.Type != UIDesigner.StoreDesignType)
             {
 
-                Design_Item finalItem = item;
+                PageItem finalItem = item;
                 String type = this.AsyncDialog("Type", g =>
                             {
 
@@ -637,30 +641,23 @@ namespace UMC.Activities
                     case "Delete":
                         if (item.Type == UIDesigner.StoreDesignType)
                         {
-                            if (DataFactory.Instance().DesignItems(item.Id.Value).Length > 0)
-                            //entity.Where.Reset().And().Equal(new Design_Item() { design_id = item.Id });
-                            //if (entity.Count() > 0)
+                            if (DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, item.Id.Value).Length > 0)
                             {
                                 this.Prompt("请先删除子项");
                             }
-                            DataFactory.Instance().Delete(new Design_Item() { Id = sId });
+                            DataFactory.Instance().Delete(new PageItem() { Id = sId });
                             this.Context.Send("Design", true);
 
                         }
                         else
                         {
-                            if (DataFactory.Instance().DesignItems(item.design_id.Value, item.Id.Value).Length > 0)
+                            if (DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, item.design_id.Value, item.Id.Value).Length > 0)
                             {
-
-                                //}
-                                //entity.Where.Reset().And().Equal(new Design_Item() { for_id = item.Id });
-                                //if (entity.Count() > 0)
-                                //{
                                 this.Prompt("请先删除子项");
                             }
 
 
-                            DataFactory.Instance().Delete(new Design_Item() { Id = sId });
+                            DataFactory.Instance().Delete(new PageItem() { Id = sId });
                             this.Context.Send("Design", true);
                             this.Context.Send("Design", true);
                         }
@@ -691,7 +688,7 @@ namespace UMC.Activities
                         }
                         else
                         {
-                            Design_Item eitem = DataFactory.Instance().DesignItem(item.for_id.Value);// entity.Where.Reset().And().Equal(new Design_Item() { Id = item.for_id }).Entities.Single();
+                            PageItem eitem = DataFactory.Instance().DesignItem(item.for_id.Value);// entity.Where.Reset().And().Equal(new Design_Item() { Id = item.for_id }).Entities.Single();
 
                             switch (eitem.Type)
                             {
@@ -721,7 +718,7 @@ namespace UMC.Activities
                     case "AddBanner":
 
 
-                        Design_Item item3 = new Design_Item() { Id = Guid.NewGuid(), for_id = item.Id, design_id = item.design_id };
+                        PageItem item3 = new PageItem() { Id = Guid.NewGuid(), for_id = item.Id, design_id = item.design_id };
 
                         switch (type)
                         {
@@ -749,12 +746,9 @@ namespace UMC.Activities
 
                         if (item3.Type != null)
                         {
-                            var max = DataFactory.Instance().DesignItems(item.design_id.Value, item.Id.Value).MAX(r => r.Seq ?? 0);
-                            //entity
-                            //       .Where.Reset().And().Equal(new Design_Item() { for_id = item.Id })
-                            //       .Entities.MAX(new Design_Item() { Seq = 0 });//.Seq+1;
+                            var max = DataFactory.Instance().DesignItems(this.Context.AppKey ?? Guid.Empty, item.design_id.Value, item.Id.Value).MAX(r => r.Seq ?? 0);
                             item3.Seq = max + 1;
-
+                            item3.AppKey = this.Context.AppKey ?? Guid.Empty;
 
                             DataFactory.Instance().Put(item3);
 
@@ -767,7 +761,8 @@ namespace UMC.Activities
                             WebMeta meta = UMC.Data.JSON.Deserialize<WebMeta>(item.Data);
                             response.Redirect("Design", "Custom", new UMC.Web.WebMeta().Put("Config", meta.Get("Config")).Put("Size", size), true);
                         }
-                        Design_Item aitem = DataFactory.Instance().DesignItem(item.for_id.Value);// entity.Where.Reset().And().Equal(new Design_Item() { Id = item.for_id }).Entities.Single();
+                        PageItem aitem = DataFactory.Instance().DesignItem(item.for_id.Value);
+
 
 
                         switch (aitem.Type)
@@ -802,7 +797,13 @@ namespace UMC.Activities
                     di.Options.Put("添加分块栏", "Items");
                     return di;
                 });
-                Design_Item item2 = new Design_Item() { Id = Guid.NewGuid(), for_id = Guid.Empty, design_id = sId };
+                PageItem item2 = new PageItem()
+                {
+                    Id = Guid.NewGuid(),
+                    for_id = Guid.Empty,
+                    design_id = sId,
+                    AppKey = this.Context.AppKey ?? Guid.Empty
+                };
 
 
 
@@ -834,12 +835,9 @@ namespace UMC.Activities
 
 
                 }
-                if (item2.Type != null)
+                if (item2.Type.HasValue)
                 {
                     var max = DataFactory.Instance().DesignItems(sId.Value, Guid.Empty).MAX(r => r.Seq ?? 0);
-                    //Design_Item max = entity
-                    //        .Where.Reset().And().Equal(new Design_Item { design_id = sId, for_id = Guid.Empty })
-                    //        .Entities.MAX(new Design_Item { Seq = 0 });
                     item2.Seq = max + 1;
 
 
