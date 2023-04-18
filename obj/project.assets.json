@@ -2,9 +2,22 @@
   "version": 3,
   "targets": {
     ".NETStandard,Version=v2.1": {
+      "UMC/1.0.28": {
+        "type": "project",
+        "framework": ".NETStandard,Version=v2.1",
+        "compile": {
+          "bin/placeholder/UMC.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/UMC.dll": {}
+        }
+      },
       "UMC.Data/1.0.34": {
         "type": "project",
         "framework": ".NETStandard,Version=v2.1",
+        "dependencies": {
+          "UMC": "1.0.28"
+        },
         "compile": {
           "bin/placeholder/UMC.Data.dll": {}
         },
@@ -15,6 +28,11 @@
     }
   },
   "libraries": {
+    "UMC/1.0.28": {
+      "type": "project",
+      "path": "../UMC/UMC.csproj",
+      "msbuildProject": "../UMC/UMC.csproj"
+    },
     "UMC.Data/1.0.34": {
       "type": "project",
       "path": "../UMC.Data/UMC.Data.csproj",
@@ -23,6 +41,7 @@
   },
   "projectFileDependencyGroups": {
     ".NETStandard,Version=v2.1": [
+      "UMC >= 1.0.28",
       "UMC.Data >= 1.0.34"
     ]
   },
@@ -30,7 +49,7 @@
     "/Users/wushunming/.nuget/packages/": {}
   },
   "project": {
-    "version": "1.0.3",
+    "version": "1.0.4",
     "restore": {
       "projectUniqueName": "/Users/wushunming/Documents/APIUMC/UMC.Activities/UMC.Activities.csproj",
       "projectName": "UMC.Activities",
@@ -53,6 +72,9 @@
           "projectReferences": {
             "/Users/wushunming/Documents/APIUMC/UMC.Data/UMC.Data.csproj": {
               "projectPath": "/Users/wushunming/Documents/APIUMC/UMC.Data/UMC.Data.csproj"
+            },
+            "/Users/wushunming/Documents/APIUMC/UMC/UMC.csproj": {
+              "projectPath": "/Users/wushunming/Documents/APIUMC/UMC/UMC.csproj"
             }
           }
         }

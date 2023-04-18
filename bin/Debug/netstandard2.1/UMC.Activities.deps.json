@@ -1,0 +1,51 @@
+{
+  "runtimeTarget": {
+    "name": ".NETStandard,Version=v2.1/",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETStandard,Version=v2.1": {},
+    ".NETStandard,Version=v2.1/": {
+      "UMC.Activities/1.0.4": {
+        "dependencies": {
+          "UMC": "1.0.28",
+          "UMC.Data": "1.0.34"
+        },
+        "runtime": {
+          "UMC.Activities.dll": {}
+        }
+      },
+      "UMC/1.0.28": {
+        "runtime": {
+          "UMC.dll": {}
+        }
+      },
+      "UMC.Data/1.0.34": {
+        "dependencies": {
+          "UMC": "1.0.28"
+        },
+        "runtime": {
+          "UMC.Data.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "UMC.Activities/1.0.4": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UMC/1.0.28": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UMC.Data/1.0.34": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

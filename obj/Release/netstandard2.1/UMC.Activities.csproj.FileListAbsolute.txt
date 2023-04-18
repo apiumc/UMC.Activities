@@ -1,0 +1,15 @@
+/Users/wushunming/Documents/APIUMC/UMC.Activities/bin/Release/netstandard2.1/UMC.Activities.deps.json
+/Users/wushunming/Documents/APIUMC/UMC.Activities/bin/Release/netstandard2.1/UMC.Activities.dll
+/Users/wushunming/Documents/APIUMC/UMC.Activities/bin/Release/netstandard2.1/UMC.Activities.pdb
+/Users/wushunming/Documents/APIUMC/UMC.Activities/bin/Release/netstandard2.1/UMC.Data.dll
+/Users/wushunming/Documents/APIUMC/UMC.Activities/bin/Release/netstandard2.1/UMC.dll
+/Users/wushunming/Documents/APIUMC/UMC.Activities/bin/Release/netstandard2.1/UMC.Data.pdb
+/Users/wushunming/Documents/APIUMC/UMC.Activities/bin/Release/netstandard2.1/UMC.pdb
+/Users/wushunming/Documents/APIUMC/UMC.Activities/obj/Release/netstandard2.1/UMC.Activities.csproj.AssemblyReference.cache
+/Users/wushunming/Documents/APIUMC/UMC.Activities/obj/Release/netstandard2.1/UMC.Activities.GeneratedMSBuildEditorConfig.editorconfig
+/Users/wushunming/Documents/APIUMC/UMC.Activities/obj/Release/netstandard2.1/UMC.Activities.AssemblyInfoInputs.cache
+/Users/wushunming/Documents/APIUMC/UMC.Activities/obj/Release/netstandard2.1/UMC.Activities.AssemblyInfo.cs
+/Users/wushunming/Documents/APIUMC/UMC.Activities/obj/Release/netstandard2.1/UMC.Activities.csproj.CoreCompileInputs.cache
+/Users/wushunming/Documents/APIUMC/UMC.Activities/obj/Release/netstandard2.1/UMC.Activities.csproj.CopyComplete
+/Users/wushunming/Documents/APIUMC/UMC.Activities/obj/Release/netstandard2.1/UMC.Activities.dll
+/Users/wushunming/Documents/APIUMC/UMC.Activities/obj/Release/netstandard2.1/UMC.Activities.pdb
